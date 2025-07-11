@@ -16,12 +16,22 @@ const PDFViewerPage = () => {
   useEffect(() => {
     const fetchDocument = async () => {
       try {
-        // Check session first, then get user
-        const { data: { session } } = await supabase.auth.getSession();
-        if (!session?.user) {
+        // First check if we have an active session
+        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+        
+        if (sessionError) {
+          console.error('Session error:', sessionError);
           navigate('/auth');
           return;
         }
+
+        if (!session?.user) {
+          console.log('No active session found, redirecting to auth');
+          navigate('/auth');
+          return;
+        }
+
+        console.log('User authenticated, fetching document:', documentId);
 
         // Check if user has access to this document
         const { data, error } = await supabase
@@ -30,7 +40,10 @@ const PDFViewerPage = () => {
           .eq('id', documentId)
           .single();
 
-        if (error) throw error;
+        if (error) {
+          console.error('Error fetching document:', error);
+          throw error;
+        }
 
         // Get public URL for the PDF since bucket is now public
         if (data.file_url) {
