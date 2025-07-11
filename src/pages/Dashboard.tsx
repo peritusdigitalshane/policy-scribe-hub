@@ -395,6 +395,13 @@ const Dashboard = () => {
           </div>
           <div className="flex items-center space-x-4">
             <Badge variant="destructive">Super Admin</Badge>
+            <Button 
+              variant="outline" 
+              onClick={() => navigate('/settings')}
+            >
+              <Settings className="mr-2 h-4 w-4" />
+              Settings
+            </Button>
             <Button variant="outline" onClick={handleSignOut}>
               <LogOut className="mr-2 h-4 w-4" />
               Sign Out
