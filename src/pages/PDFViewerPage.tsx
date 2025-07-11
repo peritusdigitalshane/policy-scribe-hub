@@ -176,7 +176,6 @@ const PDFViewerPage = () => {
                   }}
                   title={document.title}
                   onContextMenu={(e) => e.preventDefault()}
-                  sandbox="allow-same-origin allow-scripts"
                 />
               </div>
             ) : (
