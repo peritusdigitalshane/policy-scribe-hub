@@ -144,39 +144,23 @@ const Index = () => {
           </p>
         </div>
 
-        <div className="grid gap-6 md:grid-cols-3 max-w-4xl mx-auto">
-          <Card className="border-2 border-red-200 dark:border-red-800">
-            <CardHeader>
-              <div className="flex items-center space-x-2">
-                <Shield className="h-6 w-6 text-red-500" />
-                <CardTitle className="text-lg">Super Admin</CardTitle>
-              </div>
-              <Badge variant="destructive" className="w-fit">Highest Access</Badge>
-            </CardHeader>
-            <CardContent>
-              <ul className="space-y-2 text-sm text-muted-foreground">
-                <li>• Manage all tenants and users</li>
-                <li>• Configure document permissions</li>
-                <li>• System-wide administration</li>
-                <li>• Full platform control</li>
-              </ul>
-            </CardContent>
-          </Card>
-
+        <div className="grid gap-6 md:grid-cols-2 max-w-3xl mx-auto">
           <Card className="border-2 border-blue-200 dark:border-blue-800">
             <CardHeader>
               <div className="flex items-center space-x-2">
                 <Users className="h-6 w-6 text-blue-500" />
-                <CardTitle className="text-lg">Tenant Admin</CardTitle>
+                <CardTitle className="text-lg">Admin Plan</CardTitle>
               </div>
-              <Badge variant="secondary" className="w-fit">Organization Level</Badge>
+              <Badge variant="secondary" className="w-fit">Full Control</Badge>
             </CardHeader>
             <CardContent>
               <ul className="space-y-2 text-sm text-muted-foreground">
                 <li>• Manage organization users</li>
                 <li>• Create and edit documents</li>
-                <li>• Control tenant permissions</li>
-                <li>• Organization oversight</li>
+                <li>• Control document permissions</li>
+                <li>• Advanced reporting & analytics</li>
+                <li>• Bulk document operations</li>
+                <li>• Custom approval workflows</li>
               </ul>
             </CardContent>
           </Card>
@@ -185,16 +169,17 @@ const Index = () => {
             <CardHeader>
               <div className="flex items-center space-x-2">
                 <FileText className="h-6 w-6 text-green-500" />
-                <CardTitle className="text-lg">User</CardTitle>
+                <CardTitle className="text-lg">Standard Plan</CardTitle>
               </div>
-              <Badge variant="outline" className="w-fit">Standard Access</Badge>
+              <Badge variant="outline" className="w-fit">Essential Access</Badge>
             </CardHeader>
             <CardContent>
               <ul className="space-y-2 text-sm text-muted-foreground">
                 <li>• Access assigned documents</li>
                 <li>• View policies and standards</li>
                 <li>• Download permitted files</li>
-                <li>• Basic platform features</li>
+                <li>• Basic search and filtering</li>
+                <li>• Mobile app access</li>
               </ul>
             </CardContent>
           </Card>
