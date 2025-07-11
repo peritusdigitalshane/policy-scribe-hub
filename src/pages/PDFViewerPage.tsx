@@ -16,8 +16,9 @@ const PDFViewerPage = () => {
   useEffect(() => {
     const fetchDocument = async () => {
       try {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!user) {
+        // Check session first, then get user
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session?.user) {
           navigate('/auth');
           return;
         }
