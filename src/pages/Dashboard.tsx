@@ -221,51 +221,24 @@ const Dashboard = () => {
 
   const createUser = async () => {
     try {
-      // Create regular user signup with auto-confirmation for admin-created users
-      const { data: authData, error: authError } = await supabase.auth.signUp({
-        email: userForm.email,
-        password: userForm.password,
-        options: {
-          emailRedirectTo: `${window.location.origin}/auth`,
-          data: {
-            first_name: userForm.firstName,
-            last_name: userForm.lastName,
-            admin_created: true // Flag to indicate this was admin-created
-          }
+      // Use edge function to create user with auto-confirmation
+      const { data, error } = await supabase.functions.invoke('create-user', {
+        body: {
+          email: userForm.email,
+          password: userForm.password,
+          firstName: userForm.firstName,
+          lastName: userForm.lastName,
+          tenantId: userForm.tenantId || undefined,
+          role: userForm.role
         }
       });
 
-      if (authError) throw authError;
-
-      if (!authData.user) {
-        throw new Error('User creation failed');
+      if (error) {
+        throw new Error(error.message || 'Failed to create user');
       }
 
-      // Note: The user will be auto-confirmed if email confirmation is disabled in Supabase settings
-      
-      // Create tenant membership if tenant selected
-      if (userForm.tenantId) {
-        const { error: membershipError } = await supabase
-          .from("user_tenant_memberships")
-          .insert({
-            user_id: authData.user.id,
-            tenant_id: userForm.tenantId,
-            role: userForm.role as "user" | "tenant_admin" | "super_admin"
-          });
-
-        if (membershipError) throw membershipError;
-      }
-
-      // Create global role if super admin
-      if (userForm.role === 'super_admin') {
-        const { error: roleError } = await supabase
-          .from("user_roles")
-          .insert([{
-            user_id: authData.user.id,
-            role: userForm.role
-          }]);
-
-        if (roleError) throw roleError;
+      if (!data.success) {
+        throw new Error(data.error || 'User creation failed');
       }
 
       toast({ 
