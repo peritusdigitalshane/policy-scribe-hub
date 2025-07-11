@@ -394,7 +394,7 @@ const Dashboard = () => {
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
           <div className="flex items-center space-x-3">
             <FileText className="h-8 w-8 text-primary" />
-            <h1 className="text-2xl font-bold">PolicyRegister Admin</h1>
+            <h1 className="text-2xl font-bold">GovernanceHub Admin</h1>
           </div>
           <div className="flex items-center space-x-4">
             <Badge variant="destructive">Super Admin</Badge>

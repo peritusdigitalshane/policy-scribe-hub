@@ -85,17 +85,17 @@ const Index = () => {
           <div className="flex items-center justify-center space-x-3">
             <FileText className="h-12 w-12 text-primary" />
             <h1 className="text-5xl font-bold bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
-              PolicyRegister
+              GovernanceHub
             </h1>
           </div>
           
           <h2 className="text-3xl font-semibold text-foreground">
-            Enterprise Policy & Standards Management
+            A Peritus Digital Platform
           </h2>
           
           <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-            Streamline your organization's policy and standards management with our secure, 
-            multi-tenant platform designed for enterprise compliance and governance.
+            Streamline your organization's governance, policy and standards management with our secure, 
+            multi-tenant platform designed for enterprise compliance and operational excellence.
           </p>
 
           <div className="flex items-center justify-center space-x-4">
@@ -208,7 +208,7 @@ const Index = () => {
           <CardHeader>
             <CardTitle className="text-2xl">Ready to Get Started?</CardTitle>
             <CardDescription>
-              Join organizations already using PolicyRegister to streamline their compliance management
+              Join organizations already using GovernanceHub to streamline their compliance management
             </CardDescription>
           </CardHeader>
           <CardContent>

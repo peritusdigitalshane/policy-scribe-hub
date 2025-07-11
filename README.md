@@ -1,6 +1,6 @@
-# Policy Register - Self-Hosted Docker Deployment
+# GovernanceHub - A Peritus Digital Platform
 
-A comprehensive document management system for policies and standards with multi-tenant support, secure document sharing via magic links, and role-based access control.
+A comprehensive governance, policy and standards management system with multi-tenant support, secure document sharing via magic links, and role-based access control.
 
 ## Features
 
@@ -23,7 +23,7 @@ A comprehensive document management system for policies and standards with multi
 
 ```bash
 # Clone the repository (or extract the source code)
-cd policy-register
+cd governance-hub
 
 # Build and start the container
 docker-compose up -d --build
@@ -40,11 +40,11 @@ http://localhost:3000
 
 The application comes with a pre-configured super admin account:
 
-**Email**: `admin@policyregister.com`  
+**Email**: `admin@governancehub.com`  
 **Password**: Create this account through the signup process
 
 1. Click "Sign Up" on the login page
-2. Use the email `admin@policyregister.com`
+2. Use the email `admin@governancehub.com`
 3. Create a password
 4. This account will automatically receive super admin privileges
 
@@ -290,3 +290,5 @@ This project is configured for self-hosted deployment. Please ensure compliance 
 ---
 
 For technical support or questions about deployment, refer to the application logs and Supabase documentation.
+
+**GovernanceHub** is a Peritus Digital platform designed for enterprise governance and compliance management.

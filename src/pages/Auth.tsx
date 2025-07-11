@@ -119,9 +119,9 @@ const Auth = () => {
         <div className="text-center space-y-2">
           <div className="flex items-center justify-center space-x-2">
             <FileText className="h-8 w-8 text-primary" />
-            <h1 className="text-2xl font-bold">PolicyRegister</h1>
+            <h1 className="text-2xl font-bold">GovernanceHub</h1>
           </div>
-          <p className="text-muted-foreground">Access your policy and standards register</p>
+          <p className="text-muted-foreground">Access your governance platform</p>
         </div>
 
         <Card>
