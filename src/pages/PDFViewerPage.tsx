@@ -124,15 +124,16 @@ const PDFViewerPage = () => {
             {pdfUrl ? (
               <div className="w-full h-[800px] border rounded-lg overflow-hidden">
                 <iframe
-                  src={`${pdfUrl}#toolbar=0&navpanes=0&scrollbar=0&view=FitH`}
+                  src={`${pdfUrl}#toolbar=0&navpanes=0&scrollbar=0&view=FitH&download=0&print=0`}
                   width="100%"
                   height="100%"
                   style={{ 
                     border: 'none',
-                    pointerEvents: 'auto'
+                    pointerEvents: 'none'
                   }}
                   title={document.title}
-                  onContextMenu={(e) => e.preventDefault()} // Disable right-click
+                  onContextMenu={(e) => e.preventDefault()}
+                  sandbox="allow-same-origin"
                 />
               </div>
             ) : (

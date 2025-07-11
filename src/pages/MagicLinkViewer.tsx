@@ -40,14 +40,16 @@ const MagicLinkViewer = () => {
           .from('document_magic_links')
           .select('view_count')
           .eq('magic_token', token)
-          .single();
+          .maybeSingle();
 
-        await supabase
-          .from('document_magic_links')
-          .update({ 
-            view_count: (currentLink?.view_count || 0) + 1 
-          })
-          .eq('magic_token', token);
+        if (currentLink) {
+          await supabase
+            .from('document_magic_links')
+            .update({ 
+              view_count: (currentLink.view_count || 0) + 1 
+            })
+            .eq('magic_token', token);
+        }
 
         // Generate signed URL for the PDF
         if (linkData.document_file_url) {
@@ -146,15 +148,16 @@ const MagicLinkViewer = () => {
             {pdfUrl ? (
               <div className="w-full h-[800px] border rounded-lg overflow-hidden">
                 <iframe
-                  src={`${pdfUrl}#toolbar=0&navpanes=0&scrollbar=0&view=FitH`}
+                  src={`${pdfUrl}#toolbar=0&navpanes=0&scrollbar=0&view=FitH&download=0&print=0`}
                   width="100%"
                   height="100%"
                   style={{ 
                     border: 'none',
-                    pointerEvents: 'auto'
+                    pointerEvents: 'none'
                   }}
                   title={document.title}
-                  onContextMenu={(e) => e.preventDefault()} // Disable right-click
+                  onContextMenu={(e) => e.preventDefault()}
+                  sandbox="allow-same-origin"
                 />
               </div>
             ) : (
