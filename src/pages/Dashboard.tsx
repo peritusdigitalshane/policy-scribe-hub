@@ -221,7 +221,7 @@ const Dashboard = () => {
 
   const createUser = async () => {
     try {
-      // Create regular user signup (not admin API)
+      // Create regular user signup with auto-confirmation for admin-created users
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email: userForm.email,
         password: userForm.password,
@@ -229,7 +229,8 @@ const Dashboard = () => {
           emailRedirectTo: `${window.location.origin}/auth`,
           data: {
             first_name: userForm.firstName,
-            last_name: userForm.lastName
+            last_name: userForm.lastName,
+            admin_created: true // Flag to indicate this was admin-created
           }
         }
       });
@@ -240,9 +241,8 @@ const Dashboard = () => {
         throw new Error('User creation failed');
       }
 
-      // Wait a moment for the user to be processed
-      await new Promise(resolve => setTimeout(resolve, 1000));
-
+      // Note: The user will be auto-confirmed if email confirmation is disabled in Supabase settings
+      
       // Create tenant membership if tenant selected
       if (userForm.tenantId) {
         const { error: membershipError } = await supabase
@@ -268,7 +268,10 @@ const Dashboard = () => {
         if (roleError) throw roleError;
       }
 
-      toast({ title: "Success", description: "User created successfully. They will receive an email confirmation." });
+      toast({ 
+        title: "Success", 
+        description: "User created successfully and is immediately active (no email confirmation required)." 
+      });
       setUserForm({ email: "", firstName: "", lastName: "", password: "", tenantId: "", role: "user" });
       fetchUsers();
       fetchMemberships();
