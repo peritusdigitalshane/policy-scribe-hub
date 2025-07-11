@@ -29,6 +29,7 @@ import {
   Share2
 } from "lucide-react";
 import TenantAssignmentManager from "@/components/TenantAssignmentManager";
+import MembershipManager from "@/components/MembershipManager";
 
 interface Tenant {
   id: string;
@@ -414,23 +415,23 @@ const Dashboard = () => {
 
       {/* Main Content */}
       <div className="container mx-auto px-4 py-8">
-        <Tabs defaultValue="tenants" className="space-y-6">
+        <Tabs defaultValue="memberships" className="space-y-6">
           <TabsList className="grid w-full grid-cols-4">
+            <TabsTrigger value="memberships">
+              <Users className="mr-2 h-4 w-4" />
+              Memberships
+            </TabsTrigger>
             <TabsTrigger value="tenants">
               <Building2 className="mr-2 h-4 w-4" />
               Tenants
             </TabsTrigger>
             <TabsTrigger value="users">
               <Users className="mr-2 h-4 w-4" />
-              Users
+              Users (Legacy)
             </TabsTrigger>
             <TabsTrigger value="documents">
               <FileText className="mr-2 h-4 w-4" />
               Documents
-            </TabsTrigger>
-            <TabsTrigger value="memberships">
-              <Settings className="mr-2 h-4 w-4" />
-              Memberships
             </TabsTrigger>
           </TabsList>
 
@@ -843,8 +844,13 @@ const Dashboard = () => {
             </Card>
           </TabsContent>
 
-          {/* Memberships Tab */}
+          {/* Memberships Tab - New comprehensive membership management */}
           <TabsContent value="memberships">
+            <MembershipManager />
+          </TabsContent>
+
+          {/* Analytics Tab */}
+          <TabsContent value="analytics">
             <Card>
               <CardHeader>
                 <CardTitle>User Tenant Memberships</CardTitle>
