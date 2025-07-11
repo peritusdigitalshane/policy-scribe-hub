@@ -24,7 +24,9 @@ import {
   LogOut,
   Settings,
   Download,
-  Search
+  Search,
+  Eye,
+  Share2
 } from "lucide-react";
 
 interface Tenant {
@@ -270,7 +272,7 @@ const Dashboard = () => {
       // Upload file to storage
       const fileExt = selectedFile.name.split('.').pop();
       const fileName = `${Date.now()}.${fileExt}`;
-      const filePath = `public/${fileName}`;
+      const filePath = `${fileName}`;
 
       const { error: uploadError } = await supabase.storage
         .from('documents')
@@ -278,19 +280,14 @@ const Dashboard = () => {
 
       if (uploadError) throw uploadError;
 
-      // Get public URL
-      const { data: { publicUrl } } = supabase.storage
-        .from('documents')
-        .getPublicUrl(filePath);
-
-      // Create document record
+      // Create document record (file_url will store the storage path)
       const { data: documentData, error: documentError } = await supabase
         .from("documents")
         .insert({
           title: documentForm.title,
           description: documentForm.description,
           document_type: documentForm.type as "policy" | "standard",
-          file_url: publicUrl,
+          file_url: filePath,
           author_id: user?.id
         })
         .select()
@@ -298,7 +295,7 @@ const Dashboard = () => {
 
       if (documentError) throw documentError;
 
-      // Create tenant permissions
+      // Create tenant permissions (view only, no downloads)
       for (const tenantId of documentForm.selectedTenants) {
         await supabase
           .from("tenant_document_permissions")
@@ -306,17 +303,55 @@ const Dashboard = () => {
             document_id: documentData.id,
             tenant_id: tenantId,
             can_view: true,
-            can_download: true,
+            can_download: false, // No downloads allowed
             granted_by: user?.id
           }]);
       }
 
-      toast({ title: "Success", description: "Document uploaded successfully" });
+      toast({ title: "Success", description: "PDF uploaded successfully" });
       setDocumentForm({ title: "", description: "", type: "policy", selectedTenants: [] });
       setSelectedFile(null);
       fetchDocuments();
     } catch (error: any) {
       toast({ title: "Error", description: error.message, variant: "destructive" });
+    }
+  };
+
+  const createMagicLinkForDocument = async (documentId: string) => {
+    try {
+      // Generate a magic token
+      const { data: tokenData, error: tokenError } = await supabase
+        .rpc('generate_magic_token');
+
+      if (tokenError) throw tokenError;
+
+      // Create the magic link
+      const { data, error } = await supabase
+        .from('document_magic_links')
+        .insert({
+          document_id: documentId,
+          magic_token: tokenData,
+          created_by: user?.id
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      // Copy the magic link to clipboard
+      const magicUrl = `${window.location.origin}/view/${data.magic_token}`;
+      await navigator.clipboard.writeText(magicUrl);
+
+      toast({
+        title: "Success",
+        description: "Magic link created and copied to clipboard!",
+      });
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to create magic link",
+        variant: "destructive",
+      });
     }
   };
 
@@ -658,14 +693,18 @@ const Dashboard = () => {
                             </SelectContent>
                           </Select>
                         </div>
-                        <div>
-                          <Label htmlFor="doc-file">File</Label>
-                          <Input
-                            id="doc-file"
-                            type="file"
-                            onChange={(e) => setSelectedFile(e.target.files?.[0] || null)}
-                          />
-                        </div>
+                         <div>
+                           <Label htmlFor="doc-file">PDF File</Label>
+                           <Input
+                             id="doc-file"
+                             type="file"
+                             accept=".pdf"
+                             onChange={(e) => setSelectedFile(e.target.files?.[0] || null)}
+                           />
+                           <p className="text-xs text-muted-foreground mt-1">
+                             Only PDF files are supported for secure viewing
+                           </p>
+                         </div>
                         <div>
                           <Label>Assign to Tenants</Label>
                           <div className="grid grid-cols-2 gap-2 mt-2">
@@ -713,6 +752,7 @@ const Dashboard = () => {
                       <TableHead>Status</TableHead>
                       <TableHead>Version</TableHead>
                       <TableHead>Created</TableHead>
+                      <TableHead>Actions</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -731,6 +771,29 @@ const Dashboard = () => {
                         </TableCell>
                         <TableCell>{doc.version}</TableCell>
                         <TableCell>{new Date(doc.created_at).toLocaleDateString()}</TableCell>
+                        <TableCell>
+                          <div className="flex gap-2">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => window.open(`/view-pdf/${doc.id}`, '_blank')}
+                              disabled={!doc.file_url}
+                            >
+                              <Eye className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => {
+                                // Create magic link and copy to clipboard
+                                createMagicLinkForDocument(doc.id);
+                              }}
+                              disabled={!doc.file_url}
+                            >
+                              <Share2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </TableCell>
                       </TableRow>
                     ))}
                   </TableBody>

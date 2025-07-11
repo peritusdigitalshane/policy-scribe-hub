@@ -14,6 +14,60 @@ export type Database = {
   }
   public: {
     Tables: {
+      document_magic_links: {
+        Row: {
+          created_at: string
+          created_by: string
+          document_id: string
+          expires_at: string
+          id: string
+          is_active: boolean
+          magic_token: string
+          max_views: number | null
+          updated_at: string
+          view_count: number
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          document_id: string
+          expires_at?: string
+          id?: string
+          is_active?: boolean
+          magic_token: string
+          max_views?: number | null
+          updated_at?: string
+          view_count?: number
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          document_id?: string
+          expires_at?: string
+          id?: string
+          is_active?: boolean
+          magic_token?: string
+          max_views?: number | null
+          updated_at?: string
+          view_count?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "document_magic_links_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "document_magic_links_document_id_fkey"
+            columns: ["document_id"]
+            isOneToOne: false
+            referencedRelation: "documents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       documents: {
         Row: {
           author_id: string | null
@@ -291,6 +345,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      generate_magic_token: {
+        Args: Record<PropertyKey, never>
+        Returns: string
+      }
       get_user_tenants: {
         Args: { user_id?: string }
         Returns: {
@@ -316,6 +374,15 @@ export type Database = {
       setup_manual_super_admin: {
         Args: { admin_user_id: string }
         Returns: undefined
+      }
+      verify_magic_link_access: {
+        Args: { token: string }
+        Returns: {
+          document_id: string
+          document_title: string
+          document_file_url: string
+          can_access: boolean
+        }[]
       }
     }
     Enums: {
