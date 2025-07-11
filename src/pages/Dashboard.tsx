@@ -221,18 +221,27 @@ const Dashboard = () => {
 
   const createUser = async () => {
     try {
-      // Create auth user first using admin API
-      const { data: authData, error: authError } = await supabase.auth.admin.createUser({
+      // Create regular user signup (not admin API)
+      const { data: authData, error: authError } = await supabase.auth.signUp({
         email: userForm.email,
         password: userForm.password,
-        email_confirm: true,
-        user_metadata: {
-          first_name: userForm.firstName,
-          last_name: userForm.lastName
+        options: {
+          emailRedirectTo: `${window.location.origin}/auth`,
+          data: {
+            first_name: userForm.firstName,
+            last_name: userForm.lastName
+          }
         }
       });
 
       if (authError) throw authError;
+
+      if (!authData.user) {
+        throw new Error('User creation failed');
+      }
+
+      // Wait a moment for the user to be processed
+      await new Promise(resolve => setTimeout(resolve, 1000));
 
       // Create tenant membership if tenant selected
       if (userForm.tenantId) {
@@ -259,7 +268,7 @@ const Dashboard = () => {
         if (roleError) throw roleError;
       }
 
-      toast({ title: "Success", description: "User created successfully" });
+      toast({ title: "Success", description: "User created successfully. They will receive an email confirmation." });
       setUserForm({ email: "", firstName: "", lastName: "", password: "", tenantId: "", role: "user" });
       fetchUsers();
       fetchMemberships();
