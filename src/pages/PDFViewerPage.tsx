@@ -13,6 +13,38 @@ const PDFViewerPage = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [pdfUrl, setPdfUrl] = useState<string | null>(null);
 
+  // Add global keyboard shortcut prevention
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      // Prevent common download/save shortcuts
+      if ((event.ctrlKey || event.metaKey) && 
+          (event.key === 's' || event.key === 'p' || event.key === 'a' || 
+           event.key === 'S' || event.key === 'P' || event.key === 'A')) {
+        event.preventDefault();
+        event.stopPropagation();
+        toast({
+          title: "Action Disabled",
+          description: "Download and print functions are disabled for this document",
+          variant: "destructive",
+        });
+      }
+      
+      // Prevent F12, right-click menu shortcuts
+      if (event.key === 'F12' || 
+          (event.ctrlKey && event.shiftKey && (event.key === 'I' || event.key === 'C' || event.key === 'J')) ||
+          (event.ctrlKey && event.key === 'U')) {
+        event.preventDefault();
+        event.stopPropagation();
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, []);
+
   useEffect(() => {
     const fetchDocument = async () => {
       try {
@@ -166,16 +198,42 @@ const PDFViewerPage = () => {
           </CardHeader>
           <CardContent>
             {pdfUrl ? (
-              <div className="w-full h-[800px] border rounded-lg overflow-hidden">
+              <div className="w-full h-[800px] border rounded-lg overflow-hidden relative">
                 <iframe
-                  src={`${pdfUrl}#toolbar=0&navpanes=0&scrollbar=1&view=FitH`}
+                  src={`${pdfUrl}#toolbar=0&navpanes=0&scrollbar=0&zoom=page-fit&pagemode=none&view=FitH&disableprint=true`}
                   width="100%"
                   height="100%"
                   style={{ 
-                    border: 'none'
+                    border: 'none',
+                    pointerEvents: 'auto'
                   }}
                   title={document.title}
                   onContextMenu={(e) => e.preventDefault()}
+                  onLoad={(e) => {
+                    // Disable additional shortcuts when iframe loads
+                    const iframe = e.target as HTMLIFrameElement;
+                    try {
+                      const iframeDoc = iframe.contentDocument || iframe.contentWindow?.document;
+                      if (iframeDoc) {
+                        iframeDoc.addEventListener('keydown', (event) => {
+                          // Prevent common download shortcuts
+                          if ((event.ctrlKey || event.metaKey) && 
+                              (event.key === 's' || event.key === 'p' || event.key === 'a')) {
+                            event.preventDefault();
+                            event.stopPropagation();
+                          }
+                        });
+                      }
+                    } catch (error) {
+                      // Cross-origin restrictions may prevent access
+                      console.log('Cannot access iframe content due to CORS');
+                    }
+                  }}
+                />
+                {/* Overlay to prevent some bypass attempts */}
+                <div 
+                  className="absolute inset-0 pointer-events-none"
+                  style={{ zIndex: 1 }}
                 />
               </div>
             ) : (
@@ -190,21 +248,49 @@ const PDFViewerPage = () => {
         </Card>
       </div>
 
-      {/* Disable right-click and keyboard shortcuts globally */}
+      {/* Enhanced security styling */}
       <style>{`
         body {
           -webkit-user-select: none;
           -moz-user-select: none;
           -ms-user-select: none;
           user-select: none;
+          -webkit-touch-callout: none;
+          -webkit-tap-highlight-color: transparent;
         }
         
-        /* Hide print, save, and download options in PDF iframe */
+        /* Disable text selection and drag operations */
+        * {
+          -webkit-user-drag: none;
+          -khtml-user-drag: none;
+          -moz-user-drag: none;
+          -o-user-drag: none;
+          user-drag: none;
+        }
+        
+        /* Enhanced iframe security */
         iframe {
           -webkit-user-select: none;
           -moz-user-select: none;
           -ms-user-select: none;
           user-select: none;
+          -webkit-touch-callout: none;
+          pointer-events: auto;
+        }
+        
+        /* Disable image drag/save */
+        img {
+          -webkit-user-drag: none;
+          -khtml-user-drag: none;
+          -moz-user-drag: none;
+          -o-user-drag: none;
+          user-drag: none;
+          pointer-events: none;
+        }
+        
+        /* Hide context menu completely */
+        ::-webkit-scrollbar-track {
+          -webkit-user-select: none;
         }
       `}</style>
     </div>
