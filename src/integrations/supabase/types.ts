@@ -313,6 +313,10 @@ export type Database = {
         Args: { user_email: string }
         Returns: undefined
       }
+      setup_manual_super_admin: {
+        Args: { admin_user_id: string }
+        Returns: undefined
+      }
     }
     Enums: {
       document_status: "draft" | "active" | "archived"
