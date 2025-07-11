@@ -28,6 +28,7 @@ import {
   Eye,
   Share2
 } from "lucide-react";
+import TenantAssignmentManager from "@/components/TenantAssignmentManager";
 
 interface Tenant {
   id: string;
@@ -60,6 +61,7 @@ interface Document {
   status: string;
   version: string;
   file_url: string;
+  author_id: string;
   created_at: string;
 }
 
@@ -757,8 +759,8 @@ const Dashboard = () => {
                       <TableHead>Title</TableHead>
                       <TableHead>Type</TableHead>
                       <TableHead>Status</TableHead>
-                      <TableHead>Version</TableHead>
-                      <TableHead>Created</TableHead>
+                      <TableHead>Author</TableHead>
+                      <TableHead>Assigned Tenants</TableHead>
                       <TableHead>Actions</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -776,8 +778,43 @@ const Dashboard = () => {
                             {doc.status}
                           </Badge>
                         </TableCell>
-                        <TableCell>{doc.version}</TableCell>
-                        <TableCell>{new Date(doc.created_at).toLocaleDateString()}</TableCell>
+                        <TableCell>
+                          {users.find(u => u.id === doc.author_id)?.email || 'Unknown'}
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex flex-wrap gap-1">
+                            {tenants
+                              .filter(tenant => 
+                                memberships.some(m => 
+                                  m.tenant_id === tenant.id && 
+                                  // This will be replaced by actual document permissions
+                                  false
+                                )
+                              )
+                              .map(tenant => (
+                                <Badge key={tenant.id} variant="secondary" className="text-xs">
+                                  {tenant.name}
+                                </Badge>
+                              ))
+                            }
+                            <Dialog>
+                              <DialogTrigger asChild>
+                                <Button variant="outline" size="sm">
+                                  <Settings className="h-4 w-4" />
+                                </Button>
+                              </DialogTrigger>
+                              <DialogContent>
+                                <DialogHeader>
+                                  <DialogTitle>Manage Tenant Assignments</DialogTitle>
+                                  <DialogDescription>
+                                    Assign or remove this document from tenants
+                                  </DialogDescription>
+                                </DialogHeader>
+                                <TenantAssignmentManager documentId={doc.id} />
+                              </DialogContent>
+                            </Dialog>
+                          </div>
+                        </TableCell>
                         <TableCell>
                           <div className="flex gap-2">
                             <Button
@@ -791,10 +828,7 @@ const Dashboard = () => {
                             <Button
                               variant="outline"
                               size="sm"
-                              onClick={() => {
-                                // Create magic link and copy to clipboard
-                                createMagicLinkForDocument(doc.id);
-                              }}
+                              onClick={() => createMagicLinkForDocument(doc.id)}
                               disabled={!doc.file_url}
                             >
                               <Share2 className="h-4 w-4" />
