@@ -3,7 +3,7 @@ import { useParams } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { Eye, Clock, Shield } from "lucide-react";
+import { Eye, Clock, Shield, Calendar, FileType, Tag } from "lucide-react";
 
 const MagicLinkViewer = () => {
   const { token } = useParams();
@@ -60,7 +60,14 @@ const MagicLinkViewer = () => {
           setPdfUrl(data.publicUrl);
         }
 
-        setDocument({
+        // Get full document details
+        const { data: fullDocument } = await supabase
+          .from('documents')
+          .select('*')
+          .eq('id', linkData.document_id)
+          .maybeSingle();
+
+        setDocument(fullDocument || {
           id: linkData.document_id,
           title: linkData.document_title,
           file_url: linkData.document_file_url
@@ -138,6 +145,37 @@ const MagicLinkViewer = () => {
       </div>
 
       <div className="container mx-auto px-4 py-6">
+        {/* Document Information Card */}
+        <Card className="mb-6">
+          <CardHeader>
+            <CardTitle>Document Information</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+              <div className="flex items-center gap-2">
+                <FileType className="h-4 w-4 text-muted-foreground" />
+                <span className="font-medium">Type:</span>
+                <span>{document.document_type ? document.document_type.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()) : 'Not specified'}</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Tag className="h-4 w-4 text-muted-foreground" />
+                <span className="font-medium">Category:</span>
+                <span>{document.category || 'Not specified'}</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Calendar className="h-4 w-4 text-muted-foreground" />
+                <span className="font-medium">Last Reviewed:</span>
+                <span>{document.last_reviewed ? new Date(document.last_reviewed).toLocaleDateString() : 'Not reviewed'}</span>
+              </div>
+            </div>
+            {document.description && (
+              <div className="mt-4 pt-4 border-t">
+                <p className="text-sm text-muted-foreground">{document.description}</p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
         <Card>
           <CardHeader>
             <CardTitle>Shared Document</CardTitle>
