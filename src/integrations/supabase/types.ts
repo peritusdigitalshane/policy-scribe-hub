@@ -383,9 +383,19 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      can_user_access_document: {
+        Args: { doc_id: string; user_id?: string }
+        Returns: boolean
+      }
       generate_magic_token: {
         Args: Record<PropertyKey, never>
         Returns: string
+      }
+      get_user_accessible_documents: {
+        Args: { user_id?: string }
+        Returns: {
+          document_id: string
+        }[]
       }
       get_user_tenants: {
         Args: { user_id?: string }
@@ -395,6 +405,10 @@ export type Database = {
       }
       has_super_admin: {
         Args: Record<PropertyKey, never>
+        Returns: boolean
+      }
+      is_document_author: {
+        Args: { doc_id: string; user_id?: string }
         Returns: boolean
       }
       is_super_admin: {
