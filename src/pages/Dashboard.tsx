@@ -32,7 +32,14 @@ import {
   Search,
   Eye,
   Share2,
-  Calendar as CalendarIcon
+  Calendar as CalendarIcon,
+  FolderOpen,
+  Shield,
+  Lock,
+  Brain,
+  Award,
+  TreePine,
+  Globe
 } from "lucide-react";
 import TenantAssignmentManager from "@/components/TenantAssignmentManager";
 import MembershipManager from "@/components/MembershipManager";
@@ -71,6 +78,7 @@ interface Document {
   author_id: string;
   created_at: string;
   last_reviewed?: string;
+  category?: string;
 }
 
 interface TenantMembership {
@@ -92,6 +100,7 @@ const Dashboard = () => {
   const [memberships, setMemberships] = useState<TenantMembership[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState<string>("all");
   const navigate = useNavigate();
 
   // Form states
@@ -425,6 +434,65 @@ const Dashboard = () => {
     }
   };
 
+  // Document categories with icons and descriptions
+  const documentCategories = [
+    { id: "all", name: "All Documents", icon: FolderOpen, color: "text-gray-500", count: documents.length },
+    { id: "iso-standards", name: "ISO Standards", icon: Award, color: "text-blue-500", count: documents.filter(d => d.category?.includes('ISO') || d.title.includes('ISO')).length },
+    { id: "cybersecurity", name: "Cyber Security", icon: Shield, color: "text-red-500", count: documents.filter(d => d.category?.includes('Cyber') || d.document_type === 'cybersecurity' || d.title.toLowerCase().includes('cyber')).length },
+    { id: "ai-governance", name: "AI Governance", icon: Brain, color: "text-purple-500", count: documents.filter(d => d.title.toLowerCase().includes('ai') || d.title.toLowerCase().includes('artificial intelligence')).length },
+    { id: "privacy", name: "Privacy & Data Protection", icon: Lock, color: "text-green-500", count: documents.filter(d => d.document_type === 'privacy' || d.title.toLowerCase().includes('privacy') || d.title.toLowerCase().includes('data protection')).length },
+    { id: "workplace-safety", name: "Workplace Safety", icon: TreePine, color: "text-orange-500", count: documents.filter(d => d.document_type === 'workplace_safety' || d.title.toLowerCase().includes('whs') || d.title.toLowerCase().includes('safety')).length },
+    { id: "quality-management", name: "Quality Management", icon: Award, color: "text-indigo-500", count: documents.filter(d => d.document_type === 'quality_management' || d.title.toLowerCase().includes('quality')).length },
+    { id: "environmental", name: "Environmental", icon: Globe, color: "text-emerald-500", count: documents.filter(d => d.document_type === 'environmental' || d.title.toLowerCase().includes('environmental')).length },
+    { id: "compliance", name: "Compliance & Risk", icon: Shield, color: "text-yellow-600", count: documents.filter(d => d.document_type === 'compliance' || d.document_type === 'risk_management' || d.title.toLowerCase().includes('compliance')).length },
+  ];
+
+  // Filter documents based on selected category
+  const getFilteredDocuments = () => {
+    let filtered = documents;
+
+    // Filter by search term
+    if (searchTerm) {
+      filtered = filtered.filter(doc => 
+        doc.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        doc.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        doc.document_type.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+    }
+
+    // Filter by category
+    if (selectedCategory !== "all") {
+      switch (selectedCategory) {
+        case "iso-standards":
+          filtered = filtered.filter(d => d.category?.includes('ISO') || d.title.includes('ISO'));
+          break;
+        case "cybersecurity":
+          filtered = filtered.filter(d => d.category?.includes('Cyber') || d.document_type === 'cybersecurity' || d.title.toLowerCase().includes('cyber'));
+          break;
+        case "ai-governance":
+          filtered = filtered.filter(d => d.title.toLowerCase().includes('ai') || d.title.toLowerCase().includes('artificial intelligence'));
+          break;
+        case "privacy":
+          filtered = filtered.filter(d => d.document_type === 'privacy' || d.title.toLowerCase().includes('privacy') || d.title.toLowerCase().includes('data protection'));
+          break;
+        case "workplace-safety":
+          filtered = filtered.filter(d => d.document_type === 'workplace_safety' || d.title.toLowerCase().includes('whs') || d.title.toLowerCase().includes('safety'));
+          break;
+        case "quality-management":
+          filtered = filtered.filter(d => d.document_type === 'quality_management' || d.title.toLowerCase().includes('quality'));
+          break;
+        case "environmental":
+          filtered = filtered.filter(d => d.document_type === 'environmental' || d.title.toLowerCase().includes('environmental'));
+          break;
+        case "compliance":
+          filtered = filtered.filter(d => d.document_type === 'compliance' || d.document_type === 'risk_management' || d.title.toLowerCase().includes('compliance'));
+          break;
+      }
+    }
+
+    return filtered;
+  };
+
   if (isLoading) {
     return <div className="flex items-center justify-center min-h-screen">Loading...</div>;
   }
@@ -724,10 +792,18 @@ const Dashboard = () => {
           <TabsContent value="documents">
             <Card>
               <CardHeader>
-                <div className="flex items-center justify-between">
-                  <div>
-                    <CardTitle>Document Library</CardTitle>
-                    <CardDescription>Upload and manage documents for tenants</CardDescription>
+                <CardTitle>Document Library</CardTitle>
+                <CardDescription>Manage your governance documents organised by category</CardDescription>
+                
+                {/* Search and Filter Controls */}
+                <div className="flex gap-4 items-center">
+                  <div className="flex-1">
+                    <Input 
+                      placeholder="Search documents..." 
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      className="max-w-md"
+                    />
                   </div>
                   <Dialog>
                     <DialogTrigger asChild>
@@ -820,7 +896,34 @@ const Dashboard = () => {
                   </Dialog>
                 </div>
               </CardHeader>
+              
+              {/* Category Filter Tabs */}
               <CardContent>
+                <div className="mb-6">
+                  <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-3">
+                    {documentCategories.map((category) => {
+                      const Icon = category.icon;
+                      return (
+                        <Button
+                          key={category.id}
+                          variant={selectedCategory === category.id ? "default" : "outline"}
+                          className="flex flex-col h-auto p-4 text-left"
+                          onClick={() => setSelectedCategory(category.id)}
+                        >
+                          <div className="flex items-center gap-2 mb-2">
+                            <Icon className={`h-4 w-4 ${category.color}`} />
+                            <span className="font-medium text-sm">{category.name}</span>
+                          </div>
+                          <span className="text-xs text-muted-foreground">
+                            {category.count} {category.count === 1 ? 'document' : 'documents'}
+                          </span>
+                        </Button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Documents Table */}
                 <Table>
                   <TableHeader>
                     <TableRow>
@@ -834,7 +937,7 @@ const Dashboard = () => {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {filteredDocuments.map((doc) => (
+                    {getFilteredDocuments().map((doc) => (
                       <TableRow key={doc.id}>
                         <TableCell className="font-medium">{doc.title}</TableCell>
                         <TableCell>
@@ -965,6 +1068,19 @@ const Dashboard = () => {
                     ))}
                   </TableBody>
                 </Table>
+                
+                {/* Empty State */}
+                {getFilteredDocuments().length === 0 && (
+                  <div className="text-center py-8">
+                    <FolderOpen className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                    <h3 className="text-lg font-medium mb-2">No documents found</h3>
+                    <p className="text-muted-foreground">
+                      {searchTerm || selectedCategory !== "all" 
+                        ? "Try adjusting your search or category filter" 
+                        : "Upload your first document to get started"}
+                    </p>
+                  </div>
+                )}
               </CardContent>
             </Card>
           </TabsContent>
