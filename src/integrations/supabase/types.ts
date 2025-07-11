@@ -80,6 +80,7 @@ export type Database = {
           expiry_date: string | null
           file_url: string | null
           id: string
+          last_reviewed: string | null
           review_date: string | null
           status: Database["public"]["Enums"]["document_status"]
           tags: string[] | null
@@ -98,6 +99,7 @@ export type Database = {
           expiry_date?: string | null
           file_url?: string | null
           id?: string
+          last_reviewed?: string | null
           review_date?: string | null
           status?: Database["public"]["Enums"]["document_status"]
           tags?: string[] | null
@@ -116,6 +118,7 @@ export type Database = {
           expiry_date?: string | null
           file_url?: string | null
           id?: string
+          last_reviewed?: string | null
           review_date?: string | null
           status?: Database["public"]["Enums"]["document_status"]
           tags?: string[] | null

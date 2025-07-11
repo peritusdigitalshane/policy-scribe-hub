@@ -10,9 +10,14 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { User } from "@supabase/supabase-js";
+import { format } from "date-fns";
+import { cn } from "@/lib/utils";
 import { 
   FileText, 
   Users, 
@@ -26,7 +31,8 @@ import {
   Download,
   Search,
   Eye,
-  Share2
+  Share2,
+  Calendar as CalendarIcon
 } from "lucide-react";
 import TenantAssignmentManager from "@/components/TenantAssignmentManager";
 import MembershipManager from "@/components/MembershipManager";
@@ -64,6 +70,7 @@ interface Document {
   file_url: string;
   author_id: string;
   created_at: string;
+  last_reviewed?: string;
 }
 
 interface TenantMembership {
@@ -355,6 +362,58 @@ const Dashboard = () => {
       toast({ 
         title: "Success", 
         description: `Document status updated to ${newStatus}` 
+      });
+      fetchDocuments();
+    } catch (error: any) {
+      toast({ 
+        title: "Error", 
+        description: error.message, 
+        variant: "destructive" 
+      });
+    }
+  };
+
+  const deleteDocument = async (documentId: string) => {
+    try {
+      const { error } = await supabase
+        .from("documents")
+        .delete()
+        .eq("id", documentId);
+
+      if (error) throw error;
+
+      toast({ 
+        title: "Success", 
+        description: "Document deleted successfully" 
+      });
+      fetchDocuments();
+    } catch (error: any) {
+      toast({ 
+        title: "Error", 
+        description: error.message, 
+        variant: "destructive" 
+      });
+    }
+  };
+
+  const updateDocument = async (documentId: string, updates: {
+    title?: string;
+    description?: string;
+    document_type?: "policy" | "standard" | "procedure" | "form" | "template" | "guideline" | "framework" | "assessment" | "audit" | "certification" | "compliance" | "risk_management" | "cybersecurity" | "privacy" | "workplace_safety" | "quality_management" | "environmental" | "business_continuity" | "incident_response" | "training_material" | "checklist";
+    category?: string;
+    last_reviewed?: string | null;
+  }) => {
+    try {
+      const { error } = await supabase
+        .from("documents")
+        .update(updates)
+        .eq("id", documentId);
+
+      if (error) throw error;
+
+      toast({ 
+        title: "Success", 
+        description: "Document updated successfully" 
       });
       fetchDocuments();
     } catch (error: any) {
@@ -769,6 +828,7 @@ const Dashboard = () => {
                       <TableHead>Type</TableHead>
                       <TableHead>Status</TableHead>
                       <TableHead>Author</TableHead>
+                      <TableHead>Last Reviewed</TableHead>
                       <TableHead>Assigned Tenants</TableHead>
                       <TableHead>Actions</TableHead>
                     </TableRow>
@@ -813,9 +873,12 @@ const Dashboard = () => {
                              </SelectContent>
                            </Select>
                          </TableCell>
-                        <TableCell>
-                          {users.find(u => u.id === doc.author_id)?.email || 'Unknown'}
-                        </TableCell>
+                         <TableCell>
+                           {users.find(u => u.id === doc.author_id)?.email || 'Unknown'}
+                         </TableCell>
+                         <TableCell>
+                           {doc.last_reviewed ? format(new Date(doc.last_reviewed), 'dd/MM/yyyy') : 'Not set'}
+                         </TableCell>
                         <TableCell>
                           <div className="flex flex-wrap gap-1">
                             {tenants
@@ -850,26 +913,54 @@ const Dashboard = () => {
                             </Dialog>
                           </div>
                         </TableCell>
-                        <TableCell>
-                          <div className="flex gap-2">
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => window.open(`/view-pdf/${doc.id}`, '_blank')}
-                              disabled={!doc.file_url}
-                            >
-                              <Eye className="h-4 w-4" />
-                            </Button>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => createMagicLinkForDocument(doc.id)}
-                              disabled={!doc.file_url}
-                            >
-                              <Share2 className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        </TableCell>
+                         <TableCell>
+                           <div className="flex gap-2">
+                             <EditDocumentDialog 
+                               document={doc} 
+                               onUpdate={updateDocument}
+                             />
+                             <Button
+                               variant="outline"
+                               size="sm"
+                               onClick={() => window.open(`/view-pdf/${doc.id}`, '_blank')}
+                               disabled={!doc.file_url}
+                             >
+                               <Eye className="h-4 w-4" />
+                             </Button>
+                             <Button
+                               variant="outline"
+                               size="sm"
+                               onClick={() => createMagicLinkForDocument(doc.id)}
+                               disabled={!doc.file_url}
+                             >
+                               <Share2 className="h-4 w-4" />
+                             </Button>
+                             <AlertDialog>
+                               <AlertDialogTrigger asChild>
+                                 <Button variant="outline" size="sm">
+                                   <Trash2 className="h-4 w-4 text-destructive" />
+                                 </Button>
+                               </AlertDialogTrigger>
+                               <AlertDialogContent>
+                                 <AlertDialogHeader>
+                                   <AlertDialogTitle>Delete Document</AlertDialogTitle>
+                                   <AlertDialogDescription>
+                                     Are you sure you want to delete "{doc.title}"? This action cannot be undone.
+                                   </AlertDialogDescription>
+                                 </AlertDialogHeader>
+                                 <AlertDialogFooter>
+                                   <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                   <AlertDialogAction 
+                                     onClick={() => deleteDocument(doc.id)}
+                                     className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                   >
+                                     Delete
+                                   </AlertDialogAction>
+                                 </AlertDialogFooter>
+                               </AlertDialogContent>
+                             </AlertDialog>
+                           </div>
+                         </TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
@@ -928,6 +1019,156 @@ const Dashboard = () => {
         </Tabs>
       </div>
     </div>
+  );
+};
+
+// Edit Document Dialog Component
+const EditDocumentDialog = ({ document, onUpdate }: { 
+  document: any; 
+  onUpdate: (id: string, updates: any) => void;
+}) => {
+  const [open, setOpen] = useState(false);
+  const [title, setTitle] = useState(document.title);
+  const [description, setDescription] = useState(document.description || '');
+  const [documentType, setDocumentType] = useState(document.document_type);
+  const [category, setCategory] = useState(document.category || '');
+  const [lastReviewed, setLastReviewed] = useState<Date | undefined>(
+    document.last_reviewed ? new Date(document.last_reviewed) : undefined
+  );
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    const updates = {
+      title,
+      description,
+      document_type: documentType,
+      category,
+      last_reviewed: lastReviewed ? format(lastReviewed, 'yyyy-MM-dd') : null,
+    };
+
+    await onUpdate(document.id, updates);
+    setOpen(false);
+  };
+
+  const documentTypes = [
+    'policy', 'standard', 'procedure', 'form', 'template', 'guideline', 
+    'framework', 'assessment', 'audit', 'certification', 'compliance',
+    'risk_management', 'cybersecurity', 'privacy', 'workplace_safety',
+    'quality_management', 'environmental', 'business_continuity',
+    'incident_response', 'training_material', 'checklist'
+  ];
+
+  const categories = [
+    'ISO Standards', 'Cyber Insurance', 'Australian Standards', 
+    'Privacy & Data Protection', 'Workplace Health & Safety',
+    'Quality Management', 'Environmental Management', 
+    'Business Continuity', 'Risk Management', 'Compliance'
+  ];
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button variant="outline" size="sm">
+          <Edit className="h-4 w-4" />
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+          <DialogTitle>Edit Document</DialogTitle>
+          <DialogDescription>
+            Update document details and set last reviewed date
+          </DialogDescription>
+        </DialogHeader>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <Label htmlFor="title">Title</Label>
+            <Input 
+              id="title"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              required
+            />
+          </div>
+          
+          <div>
+            <Label htmlFor="description">Description</Label>
+            <Textarea 
+              id="description"
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              rows={3}
+            />
+          </div>
+
+          <div>
+            <Label htmlFor="documentType">Document Type</Label>
+            <Select value={documentType} onValueChange={setDocumentType}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {documentTypes.map(type => (
+                  <SelectItem key={type} value={type}>
+                    {type.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div>
+            <Label htmlFor="category">Category</Label>
+            <Select value={category} onValueChange={setCategory}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select category" />
+              </SelectTrigger>
+              <SelectContent>
+                {categories.map(cat => (
+                  <SelectItem key={cat} value={cat}>
+                    {cat}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div>
+            <Label>Last Reviewed Date</Label>
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  className={cn(
+                    "w-full justify-start text-left font-normal",
+                    !lastReviewed && "text-muted-foreground"
+                  )}
+                >
+                  <CalendarIcon className="mr-2 h-4 w-4" />
+                  {lastReviewed ? format(lastReviewed, "dd/MM/yyyy") : <span>Pick a date</span>}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="start">
+                <Calendar
+                  mode="single"
+                  selected={lastReviewed}
+                  onSelect={setLastReviewed}
+                  initialFocus
+                  className={cn("p-3 pointer-events-auto")}
+                />
+              </PopoverContent>
+            </Popover>
+          </div>
+
+          <div className="flex justify-end gap-2">
+            <Button type="button" variant="outline" onClick={() => setOpen(false)}>
+              Cancel
+            </Button>
+            <Button type="submit">Update Document</Button>
+          </div>
+        </form>
+      </DialogContent>
+    </Dialog>
   );
 };
 
