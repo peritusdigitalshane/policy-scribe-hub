@@ -297,6 +297,10 @@ export type Database = {
           tenant_id: string
         }[]
       }
+      has_super_admin: {
+        Args: Record<PropertyKey, never>
+        Returns: boolean
+      }
       is_super_admin: {
         Args: { user_id?: string }
         Returns: boolean
@@ -304,6 +308,10 @@ export type Database = {
       is_tenant_admin: {
         Args: { user_id?: string; tenant_id?: string }
         Returns: boolean
+      }
+      make_super_admin: {
+        Args: { user_email: string }
+        Returns: undefined
       }
     }
     Enums: {
