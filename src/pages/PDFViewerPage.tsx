@@ -31,14 +31,13 @@ const PDFViewerPage = () => {
 
         if (error) throw error;
 
-        // Generate a signed URL for the PDF with short expiration
+        // Get public URL for the PDF since bucket is now public
         if (data.file_url) {
-          const { data: signedUrlData, error: urlError } = await supabase.storage
+          const { data: publicUrlData } = supabase.storage
             .from('documents')
-            .createSignedUrl(data.file_url.split('/').pop()!, 3600); // 1 hour expiration
+            .getPublicUrl(data.file_url);
 
-          if (urlError) throw urlError;
-          setPdfUrl(signedUrlData.signedUrl);
+          setPdfUrl(publicUrlData.publicUrl);
         }
 
         setDocument(data);
@@ -124,16 +123,15 @@ const PDFViewerPage = () => {
             {pdfUrl ? (
               <div className="w-full h-[800px] border rounded-lg overflow-hidden">
                 <iframe
-                  src={`${pdfUrl}#toolbar=0&navpanes=0&scrollbar=0&view=FitH&download=0&print=0`}
+                  src={`${pdfUrl}#toolbar=0&navpanes=0&scrollbar=1&view=FitH`}
                   width="100%"
                   height="100%"
                   style={{ 
-                    border: 'none',
-                    pointerEvents: 'none'
+                    border: 'none'
                   }}
                   title={document.title}
                   onContextMenu={(e) => e.preventDefault()}
-                  sandbox="allow-same-origin"
+                  sandbox="allow-same-origin allow-scripts"
                 />
               </div>
             ) : (

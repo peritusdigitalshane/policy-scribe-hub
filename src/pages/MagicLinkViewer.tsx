@@ -51,14 +51,13 @@ const MagicLinkViewer = () => {
             .eq('magic_token', token);
         }
 
-        // Generate signed URL for the PDF
+        // Since bucket is now public, get the public URL directly
         if (linkData.document_file_url) {
-          const { data: signedUrlData, error: urlError } = await supabase.storage
+          const { data } = supabase.storage
             .from('documents')
-            .createSignedUrl(linkData.document_file_url, 3600); // 1 hour expiration
+            .getPublicUrl(linkData.document_file_url);
 
-          if (urlError) throw urlError;
-          setPdfUrl(signedUrlData.signedUrl);
+          setPdfUrl(data.publicUrl);
         }
 
         setDocument({
