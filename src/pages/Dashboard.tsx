@@ -343,6 +343,29 @@ const Dashboard = () => {
     }
   };
 
+  const updateDocumentStatus = async (documentId: string, newStatus: "draft" | "active" | "archived") => {
+    try {
+      const { error } = await supabase
+        .from("documents")
+        .update({ status: newStatus })
+        .eq("id", documentId);
+
+      if (error) throw error;
+
+      toast({ 
+        title: "Success", 
+        description: `Document status updated to ${newStatus}` 
+      });
+      fetchDocuments();
+    } catch (error: any) {
+      toast({ 
+        title: "Error", 
+        description: error.message, 
+        variant: "destructive" 
+      });
+    }
+  };
+
   if (isLoading) {
     return <div className="flex items-center justify-center min-h-screen">Loading...</div>;
   }
@@ -759,11 +782,37 @@ const Dashboard = () => {
                             {doc.document_type}
                           </Badge>
                         </TableCell>
-                        <TableCell>
-                          <Badge variant={doc.status === "active" ? "default" : "secondary"}>
-                            {doc.status}
-                          </Badge>
-                        </TableCell>
+                         <TableCell>
+                           <Select
+                             value={doc.status}
+                             onValueChange={(value) => updateDocumentStatus(doc.id, value as "draft" | "active" | "archived")}
+                           >
+                             <SelectTrigger className="w-24">
+                               <SelectValue>
+                                 <Badge variant={doc.status === "active" ? "default" : doc.status === "archived" ? "destructive" : "secondary"}>
+                                   {doc.status}
+                                 </Badge>
+                               </SelectValue>
+                             </SelectTrigger>
+                             <SelectContent>
+                               <SelectItem value="draft">
+                                 <div className="flex items-center gap-2">
+                                   <Badge variant="secondary">draft</Badge>
+                                 </div>
+                               </SelectItem>
+                               <SelectItem value="active">
+                                 <div className="flex items-center gap-2">
+                                   <Badge variant="default">active</Badge>
+                                 </div>
+                               </SelectItem>
+                               <SelectItem value="archived">
+                                 <div className="flex items-center gap-2">
+                                   <Badge variant="destructive">archived</Badge>
+                                 </div>
+                               </SelectItem>
+                             </SelectContent>
+                           </Select>
+                         </TableCell>
                         <TableCell>
                           {users.find(u => u.id === doc.author_id)?.email || 'Unknown'}
                         </TableCell>
