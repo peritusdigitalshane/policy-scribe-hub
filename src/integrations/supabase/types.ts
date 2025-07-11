@@ -439,7 +439,28 @@ export type Database = {
     }
     Enums: {
       document_status: "draft" | "active" | "archived"
-      document_type: "policy" | "standard"
+      document_type:
+        | "policy"
+        | "standard"
+        | "procedure"
+        | "form"
+        | "template"
+        | "guideline"
+        | "framework"
+        | "assessment"
+        | "audit"
+        | "certification"
+        | "compliance"
+        | "risk_management"
+        | "cybersecurity"
+        | "privacy"
+        | "workplace_safety"
+        | "quality_management"
+        | "environmental"
+        | "business_continuity"
+        | "incident_response"
+        | "training_material"
+        | "checklist"
       user_role: "super_admin" | "tenant_admin" | "user"
     }
     CompositeTypes: {
@@ -569,7 +590,29 @@ export const Constants = {
   public: {
     Enums: {
       document_status: ["draft", "active", "archived"],
-      document_type: ["policy", "standard"],
+      document_type: [
+        "policy",
+        "standard",
+        "procedure",
+        "form",
+        "template",
+        "guideline",
+        "framework",
+        "assessment",
+        "audit",
+        "certification",
+        "compliance",
+        "risk_management",
+        "cybersecurity",
+        "privacy",
+        "workplace_safety",
+        "quality_management",
+        "environmental",
+        "business_continuity",
+        "incident_response",
+        "training_material",
+        "checklist",
+      ],
       user_role: ["super_admin", "tenant_admin", "user"],
     },
   },
