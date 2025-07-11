@@ -61,22 +61,22 @@ const Index = () => {
     {
       icon: <Shield className="h-6 w-6 text-blue-500" />,
       title: "Policy Management",
-      description: "Centralized management of organizational policies with version control and approval workflows."
+      description: "Centralised management of organisational policies with version control and approval workflows."
     },
     {
       icon: <BookOpen className="h-6 w-6 text-green-500" />,
       title: "Standards Registry",
-      description: "Comprehensive standards documentation with categorization and easy access controls."
+      description: "Comprehensive standards documentation with categorisation and easy access controls."
     },
     {
       icon: <Building2 className="h-6 w-6 text-purple-500" />,
       title: "Multi-Tenant Architecture",
-      description: "Secure isolation between different organizations with granular permission controls."
+      description: "Secure isolation between different organisations with granular permission controls."
     },
     {
       icon: <Users className="h-6 w-6 text-orange-500" />,
       title: "Role-Based Access",
-      description: "Flexible user roles from super admin to tenant users with customizable permissions."
+      description: "Flexible user roles from super admin to tenant users with customisable permissions."
     }
   ];
 
@@ -202,7 +202,7 @@ const Index = () => {
         <div className="text-center space-y-4 mb-12">
           <h3 className="text-3xl font-bold">Platform Features</h3>
           <p className="text-muted-foreground max-w-2xl mx-auto">
-            Everything you need to manage policies and standards across your organization
+            Everything you need to manage policies and standards across your organisation
           </p>
         </div>
 
@@ -228,7 +228,7 @@ const Index = () => {
         <div className="text-center space-y-4 mb-12">
           <h3 className="text-3xl font-bold">User Roles</h3>
           <p className="text-muted-foreground max-w-2xl mx-auto">
-            Designed for different organizational roles and responsibilities
+            Designed for different organisational roles and responsibilities
           </p>
         </div>
 
@@ -243,7 +243,7 @@ const Index = () => {
             </CardHeader>
             <CardContent>
               <ul className="space-y-2 text-sm text-muted-foreground">
-                <li>• Manage organization users</li>
+                <li>• Manage organisation users</li>
                 <li>• Create and edit documents</li>
                 <li>• Control document permissions</li>
                 <li>• Advanced reporting & analytics</li>
@@ -280,7 +280,7 @@ const Index = () => {
           <CardHeader>
             <CardTitle className="text-2xl">Ready to Get Started?</CardTitle>
             <CardDescription>
-              Join organizations already using GovernanceHub to streamline their compliance management
+              Join organisations already using GovernanceHub to streamline their compliance management
             </CardDescription>
           </CardHeader>
           <CardContent>
