@@ -53,10 +53,9 @@ const MagicLinkViewer = () => {
 
         // Generate signed URL for the PDF
         if (linkData.document_file_url) {
-          const fileName = linkData.document_file_url.split('/').pop();
           const { data: signedUrlData, error: urlError } = await supabase.storage
             .from('documents')
-            .createSignedUrl(fileName!, 3600); // 1 hour expiration
+            .createSignedUrl(linkData.document_file_url, 3600); // 1 hour expiration
 
           if (urlError) throw urlError;
           setPdfUrl(signedUrlData.signedUrl);
