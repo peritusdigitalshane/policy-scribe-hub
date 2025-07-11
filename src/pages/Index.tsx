@@ -13,7 +13,10 @@ import {
   ArrowRight, 
   CheckCircle, 
   BookOpen,
-  Globe
+  Globe,
+  Award,
+  Lock,
+  Layers
 } from "lucide-react";
 
 const Index = () => {
@@ -94,8 +97,8 @@ const Index = () => {
           </h2>
           
           <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-            Streamline your organization's governance, policy and standards management with our secure, 
-            multi-tenant platform designed for enterprise compliance and operational excellence.
+            Your comprehensive governance library covering ISO standards, cyber insurance requirements, 
+            Australian standards, and enterprise compliance frameworks in one secure platform.
           </p>
 
           <div className="flex items-center justify-center space-x-4">
@@ -125,8 +128,77 @@ const Index = () => {
         </div>
       </div>
 
-      {/* Features Section */}
+      {/* Governance Library Section */}
       <div className="container mx-auto px-4 py-16">
+        <div className="text-center space-y-4 mb-12">
+          <h3 className="text-3xl font-bold">Governance Library</h3>
+          <p className="text-muted-foreground max-w-2xl mx-auto">
+            Pre-built document libraries covering industry standards and compliance frameworks
+          </p>
+        </div>
+
+        <div className="grid gap-6 md:grid-cols-3 mb-16">
+          <Card className="text-center hover:shadow-lg transition-shadow border-2 border-blue-200 dark:border-blue-800">
+            <CardHeader>
+              <div className="flex justify-center mb-4">
+                <Award className="h-8 w-8 text-blue-500" />
+              </div>
+              <CardTitle className="text-lg">ISO Standards</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <CardDescription className="mb-4">
+                Complete ISO 27001, ISO 9001, ISO 14001 documentation packages with templates and procedures
+              </CardDescription>
+              <div className="flex flex-wrap gap-1 justify-center">
+                <Badge variant="outline" className="text-xs">ISO 27001</Badge>
+                <Badge variant="outline" className="text-xs">ISO 9001</Badge>
+                <Badge variant="outline" className="text-xs">ISO 14001</Badge>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="text-center hover:shadow-lg transition-shadow border-2 border-green-200 dark:border-green-800">
+            <CardHeader>
+              <div className="flex justify-center mb-4">
+                <Lock className="h-8 w-8 text-green-500" />
+              </div>
+              <CardTitle className="text-lg">Cyber Insurance</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <CardDescription className="mb-4">
+                Comprehensive cybersecurity policies and procedures to meet insurance requirements and reduce premiums
+              </CardDescription>
+              <div className="flex flex-wrap gap-1 justify-center">
+                <Badge variant="outline" className="text-xs">NIST Framework</Badge>
+                <Badge variant="outline" className="text-xs">SOC 2</Badge>
+                <Badge variant="outline" className="text-xs">Risk Assessment</Badge>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="text-center hover:shadow-lg transition-shadow border-2 border-orange-200 dark:border-orange-800">
+            <CardHeader>
+              <div className="flex justify-center mb-4">
+                <Layers className="h-8 w-8 text-orange-500" />
+              </div>
+              <CardTitle className="text-lg">Australian Standards</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <CardDescription className="mb-4">
+                Local compliance frameworks including AS/NZS standards, privacy legislation, and workplace safety
+              </CardDescription>
+              <div className="flex flex-wrap gap-1 justify-center">
+                <Badge variant="outline" className="text-xs">AS/NZS 4360</Badge>
+                <Badge variant="outline" className="text-xs">Privacy Act</Badge>
+                <Badge variant="outline" className="text-xs">WHS</Badge>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+
+      {/* Platform Features Section */}
+      <div className="container mx-auto px-4 py-16 bg-muted/30">
         <div className="text-center space-y-4 mb-12">
           <h3 className="text-3xl font-bold">Platform Features</h3>
           <p className="text-muted-foreground max-w-2xl mx-auto">
