@@ -6,6 +6,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
+import TenantDashboard from "./pages/TenantDashboard";
 import Settings from "./pages/Settings";
 import PDFViewerPage from "./pages/PDFViewerPage";
 import MagicLinkViewer from "./pages/MagicLinkViewer";
@@ -23,6 +24,7 @@ const App = () => (
           <Route path="/" element={<Index />} />
           <Route path="/auth" element={<Auth />} />
           <Route path="/dashboard" element={<Dashboard />} />
+          <Route path="/tenant-dashboard" element={<TenantDashboard />} />
           <Route path="/settings" element={<Settings />} />
           <Route path="/view-pdf/:documentId" element={<PDFViewerPage />} />
           <Route path="/view/:token" element={<MagicLinkViewer />} />

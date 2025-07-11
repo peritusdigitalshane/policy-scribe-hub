@@ -18,9 +18,17 @@ const Auth = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (session) {
-        navigate("/dashboard");
+        // Check if user is super admin
+        const { data: isSuperAdmin } = await supabase
+          .rpc('is_super_admin', { user_id: session.user.id });
+        
+        if (isSuperAdmin) {
+          navigate("/dashboard");
+        } else {
+          navigate("/tenant-dashboard");
+        }
       }
     });
 
@@ -84,7 +92,15 @@ const Auth = () => {
           variant: "destructive",
         });
       } else {
-        navigate("/dashboard");
+        // Check user role and redirect appropriately
+        const { data: isSuperAdmin } = await supabase
+          .rpc('is_super_admin', { user_id: (await supabase.auth.getUser()).data.user?.id });
+        
+        if (isSuperAdmin) {
+          navigate("/dashboard");
+        } else {
+          navigate("/tenant-dashboard");
+        }
       }
     } catch (error) {
       toast({
