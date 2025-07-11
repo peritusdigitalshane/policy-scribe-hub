@@ -1,8 +1,8 @@
 #!/bin/sh
 
-# Docker entrypoint script for Policy Register
+# Docker entrypoint script for GovernanceHub
 
-echo "Starting Policy Register application..."
+echo "Starting GovernanceHub application..."
 
 # Create nginx directories if they don't exist
 mkdir -p /var/log/nginx
@@ -22,7 +22,7 @@ if [ $? -ne 0 ]; then
 fi
 
 echo "Nginx configuration test passed"
-echo "Policy Register is ready to start"
+echo "GovernanceHub is ready to start"
 
 # Execute the CMD
 exec "$@"

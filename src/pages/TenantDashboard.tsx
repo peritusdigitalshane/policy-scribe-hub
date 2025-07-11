@@ -265,7 +265,7 @@ const TenantDashboard = () => {
           <div className="flex items-center space-x-3">
             <FileText className="h-8 w-8 text-primary" />
             <div>
-              <h1 className="text-2xl font-bold">Document Portal</h1>
+              <h1 className="text-2xl font-bold">GovernanceHub Portal</h1>
               <p className="text-sm text-muted-foreground">
                 {userTenants.map(t => t.tenants?.name).join(', ')}
               </p>
