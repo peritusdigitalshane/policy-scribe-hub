@@ -4,7 +4,7 @@ services:
   policy-register:
     build: .
     ports:
-      - "3000:80"
+      - "3333:80"
     environment:
       - NODE_ENV=production
     restart: unless-stopped
