@@ -5,7 +5,7 @@ yarn-debug.log*
 yarn-error.log*
 
 # Build outputs
-dist
+# dist - Don't exclude, Docker needs to copy it
 build
 
 # Environment files
