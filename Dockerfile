@@ -5,7 +5,6 @@ WORKDIR /app
 
 # Copy package files
 COPY package*.json ./
-COPY bun.lockb ./
 
 # Install dependencies
 RUN npm install
@@ -16,22 +15,19 @@ COPY . .
 # Build the application
 RUN npm run build
 
-# Production stage
-FROM nginx:alpine
+# Production stage - Simple static file server
+FROM node:18-alpine
 
-# Copy custom nginx configuration
-COPY nginx.conf /etc/nginx/nginx.conf
+WORKDIR /app
+
+# Install a simple static file server
+RUN npm install -g serve
 
 # Copy built application
-COPY --from=builder /app/dist /usr/share/nginx/html
-
-# Copy startup script
-COPY docker-entrypoint.sh /docker-entrypoint.sh
-RUN chmod +x /docker-entrypoint.sh
+COPY --from=builder /app/dist ./dist
 
 # Expose port
-EXPOSE 80
+EXPOSE 3000
 
-# Start nginx
-ENTRYPOINT ["/docker-entrypoint.sh"]
-CMD ["nginx", "-g", "daemon off;"]
+# Serve the built application
+CMD ["serve", "-s", "dist", "-l", "3000"]
