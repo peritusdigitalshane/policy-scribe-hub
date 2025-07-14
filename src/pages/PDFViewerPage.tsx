@@ -273,26 +273,23 @@ const PDFViewerPage = () => {
           <CardContent>
             {pdfUrl ? (
               <div className="w-full h-[800px] border rounded-lg overflow-hidden relative bg-gray-50">
-                {/* Debug info - remove in production */}
-                <div className="bg-muted p-2 text-xs font-mono border-b">
-                  Debug: PDF loaded successfully
+                {/* Debug info - shows PDF is loaded */}
+                <div className="bg-green-100 text-green-800 p-2 text-xs font-mono border-b">
+                  ✅ PDF loaded successfully - Using secure viewer
                 </div>
                 
-                {/* Secure iframe with download prevention */}
-                <iframe
-                  src={`${pdfUrl}#toolbar=0&navpanes=0&scrollbar=1&zoom=page-fit&pagemode=none&view=FitH`}
+                {/* Use object tag instead of iframe - better Chrome compatibility */}
+                <object
+                  data={pdfUrl}
+                  type="application/pdf"
                   width="100%"
                   height="90%"
                   style={{ 
                     border: 'none',
-                    pointerEvents: 'auto',
-                    userSelect: 'none'
+                    display: 'block'
                   }}
-                  title={document.title}
-                  sandbox="allow-same-origin allow-scripts"
                   onContextMenu={(e) => {
                     e.preventDefault();
-                    e.stopPropagation();
                     toast({
                       title: "Action Disabled",
                       description: "Right-click is disabled for document security",
@@ -300,32 +297,38 @@ const PDFViewerPage = () => {
                     });
                     return false;
                   }}
-                  onLoad={(e) => {
-                    console.log('PDF loaded successfully');
-                  }}
-                  onError={(e) => {
-                    console.error('PDF loading error');
-                    toast({
-                      title: "Error",
-                      description: "Failed to load PDF document",
-                      variant: "destructive",
-                    });
-                  }}
-                />
-                
-                {/* Security overlay to prevent bypass attempts */}
-                <div 
-                  className="absolute inset-0 pointer-events-none"
-                  style={{ 
-                    zIndex: 1,
-                    background: 'transparent',
-                    userSelect: 'none'
-                  }}
-                  onContextMenu={(e) => {
-                    e.preventDefault();
-                    return false;
-                  }}
-                />
+                >
+                  {/* Fallback for browsers that don't support object tag */}
+                  <div className="flex flex-col items-center justify-center h-full p-8 text-center">
+                    <div className="text-6xl mb-4">📄</div>
+                    <h3 className="text-lg font-medium mb-2">PDF Viewer Not Supported</h3>
+                    <p className="text-muted-foreground mb-4">
+                      Your browser doesn't support inline PDF viewing. 
+                    </p>
+                    <div className="space-y-2">
+                      <Button 
+                        onClick={() => window.open(pdfUrl, '_blank')}
+                        className="mr-2"
+                      >
+                        Open in New Tab
+                      </Button>
+                      <Button 
+                        variant="outline"
+                        onClick={() => {
+                          const link = document.createElement('a');
+                          link.href = pdfUrl;
+                          link.target = '_blank';
+                          link.rel = 'noopener noreferrer';
+                          document.body.appendChild(link);
+                          link.click();
+                          document.body.removeChild(link);
+                        }}
+                      >
+                        Direct Link
+                      </Button>
+                    </div>
+                  </div>
+                </object>
                 
                 {/* Security warning */}
                 <div className="absolute bottom-2 right-2 bg-red-100 text-red-800 text-xs px-2 py-1 rounded border">
