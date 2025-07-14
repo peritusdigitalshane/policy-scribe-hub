@@ -79,11 +79,34 @@ const PDFViewerPage = () => {
 
         // Get public URL for the PDF since bucket is now public
         if (data.file_url) {
+          console.log('Document file_url:', data.file_url);
+          
+          // Try public URL first
           const { data: publicUrlData } = supabase.storage
             .from('documents')
             .getPublicUrl(data.file_url);
 
-          setPdfUrl(publicUrlData.publicUrl);
+          console.log('Generated public URL:', publicUrlData.publicUrl);
+          
+          // Verify the file exists by trying to fetch it
+          try {
+            const response = await fetch(publicUrlData.publicUrl, { method: 'HEAD' });
+            if (response.ok) {
+              setPdfUrl(publicUrlData.publicUrl);
+              console.log('PDF URL verified and set successfully');
+            } else {
+              console.error('PDF file not accessible:', response.status, response.statusText);
+              toast({
+                title: "Error",
+                description: `PDF file not accessible (${response.status})`,
+                variant: "destructive",
+              });
+            }
+          } catch (fetchError) {
+            console.error('Error verifying PDF access:', fetchError);
+            // Still try to set the URL - the error might be CORS related
+            setPdfUrl(publicUrlData.publicUrl);
+          }
         }
 
         setDocument(data);
