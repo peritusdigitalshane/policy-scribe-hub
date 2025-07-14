@@ -108,6 +108,8 @@ const Dashboard = () => {
   const [userForm, setUserForm] = useState({ email: "", firstName: "", lastName: "", password: "", tenantId: "", role: "user" });
   const [documentForm, setDocumentForm] = useState({ title: "", description: "", type: "policy", selectedTenants: [] as string[] });
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [userAssignmentForm, setUserAssignmentForm] = useState({ userId: "", role: "user" });
+  const [selectedTenantForUsers, setSelectedTenantForUsers] = useState<string>("");
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
@@ -428,6 +430,67 @@ const Dashboard = () => {
     }
   };
 
+  const assignUserToTenant = async (userId: string, tenantId: string, role: "user" | "tenant_admin" = "user") => {
+    try {
+      const { error } = await supabase
+        .from("user_tenant_memberships")
+        .insert({
+          user_id: userId,
+          tenant_id: tenantId,
+          role: role,
+          is_active: true
+        });
+
+      if (error) throw error;
+
+      toast({ 
+        title: "Success", 
+        description: "User assigned to tenant successfully" 
+      });
+      fetchMemberships();
+    } catch (error: any) {
+      toast({ 
+        title: "Error", 
+        description: error.message, 
+        variant: "destructive" 
+      });
+    }
+  };
+
+  const removeUserFromTenant = async (membershipId: string) => {
+    try {
+      const { error } = await supabase
+        .from("user_tenant_memberships")
+        .delete()
+        .eq("id", membershipId);
+
+      if (error) throw error;
+
+      toast({ 
+        title: "Success", 
+        description: "User removed from tenant successfully" 
+      });
+      fetchMemberships();
+    } catch (error: any) {
+      toast({ 
+        title: "Error", 
+        description: error.message, 
+        variant: "destructive" 
+      });
+    }
+  };
+
+  const getUsersForTenant = (tenantId: string) => {
+    return memberships.filter(m => m.tenant_id === tenantId && m.is_active);
+  };
+
+  const getUnassignedUsers = (tenantId: string) => {
+    const assignedUserIds = memberships
+      .filter(m => m.tenant_id === tenantId && m.is_active)
+      .map(m => m.user_id);
+    return users.filter(u => !assignedUserIds.includes(u.id));
+  };
+
   const updateDocument = async (documentId: string, updates: {
     title?: string;
     description?: string;
@@ -683,6 +746,139 @@ const Dashboard = () => {
                         <TableCell>{new Date(tenant.created_at).toLocaleDateString()}</TableCell>
                         <TableCell>
                           <div className="flex items-center space-x-2">
+                            <Dialog>
+                              <DialogTrigger asChild>
+                                <Button variant="outline" size="sm">
+                                  <Users className="h-4 w-4 mr-1" />
+                                  Manage Users
+                                </Button>
+                              </DialogTrigger>
+                              <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+                                <DialogHeader>
+                                  <DialogTitle>Manage Users for {tenant.name}</DialogTitle>
+                                  <DialogDescription>
+                                    Assign or remove users from this tenant
+                                  </DialogDescription>
+                                </DialogHeader>
+                                
+                                <div className="space-y-6">
+                                  {/* Add User Section */}
+                                  <div className="border rounded-lg p-4">
+                                    <h4 className="font-medium mb-3">Assign New User</h4>
+                                    <div className="flex gap-4 items-end">
+                                      <div className="flex-1">
+                                        <Label>Select User</Label>
+                                        <Select 
+                                          value={userAssignmentForm.userId} 
+                                          onValueChange={(value) => setUserAssignmentForm({ ...userAssignmentForm, userId: value })}
+                                        >
+                                          <SelectTrigger>
+                                            <SelectValue placeholder="Choose a user to assign" />
+                                          </SelectTrigger>
+                                          <SelectContent>
+                                            {getUnassignedUsers(tenant.id).map((user) => (
+                                              <SelectItem key={user.id} value={user.id}>
+                                                {user.first_name} {user.last_name} ({user.email})
+                                              </SelectItem>
+                                            ))}
+                                          </SelectContent>
+                                        </Select>
+                                      </div>
+                                      <div className="w-40">
+                                        <Label>Role</Label>
+                                        <Select 
+                                          value={userAssignmentForm.role} 
+                                          onValueChange={(value) => setUserAssignmentForm({ ...userAssignmentForm, role: value })}
+                                        >
+                                          <SelectTrigger>
+                                            <SelectValue />
+                                          </SelectTrigger>
+                                          <SelectContent>
+                                            <SelectItem value="user">User</SelectItem>
+                                            <SelectItem value="tenant_admin">Tenant Admin</SelectItem>
+                                          </SelectContent>
+                                        </Select>
+                                      </div>
+                                      <Button 
+                                        onClick={() => {
+                                          if (userAssignmentForm.userId) {
+                                            assignUserToTenant(userAssignmentForm.userId, tenant.id, userAssignmentForm.role as "user" | "tenant_admin");
+                                            setUserAssignmentForm({ userId: "", role: "user" });
+                                          }
+                                        }}
+                                        disabled={!userAssignmentForm.userId}
+                                      >
+                                        <Plus className="h-4 w-4 mr-1" />
+                                        Assign
+                                      </Button>
+                                    </div>
+                                  </div>
+
+                                  {/* Current Users Table */}
+                                  <div className="border rounded-lg p-4">
+                                    <h4 className="font-medium mb-3">Current Users ({getUsersForTenant(tenant.id).length})</h4>
+                                    {getUsersForTenant(tenant.id).length > 0 ? (
+                                      <Table>
+                                        <TableHeader>
+                                          <TableRow>
+                                            <TableHead>Name</TableHead>
+                                            <TableHead>Email</TableHead>
+                                            <TableHead>Role</TableHead>
+                                            <TableHead>Actions</TableHead>
+                                          </TableRow>
+                                        </TableHeader>
+                                        <TableBody>
+                                          {getUsersForTenant(tenant.id).map((membership) => (
+                                            <TableRow key={membership.id}>
+                                              <TableCell className="font-medium">
+                                                {membership.profiles.first_name} {membership.profiles.last_name}
+                                              </TableCell>
+                                              <TableCell>{membership.profiles.email}</TableCell>
+                                              <TableCell>
+                                                <Badge variant={membership.role === 'tenant_admin' ? "default" : "secondary"}>
+                                                  {membership.role.replace('_', ' ')}
+                                                </Badge>
+                                              </TableCell>
+                                              <TableCell>
+                                                <AlertDialog>
+                                                  <AlertDialogTrigger asChild>
+                                                    <Button variant="outline" size="sm">
+                                                      <Trash2 className="h-4 w-4" />
+                                                    </Button>
+                                                  </AlertDialogTrigger>
+                                                  <AlertDialogContent>
+                                                    <AlertDialogHeader>
+                                                      <AlertDialogTitle>Remove User</AlertDialogTitle>
+                                                      <AlertDialogDescription>
+                                                        Are you sure you want to remove {membership.profiles.first_name} {membership.profiles.last_name} from {tenant.name}?
+                                                      </AlertDialogDescription>
+                                                    </AlertDialogHeader>
+                                                    <AlertDialogFooter>
+                                                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                                      <AlertDialogAction 
+                                                        onClick={() => removeUserFromTenant(membership.id)}
+                                                        className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                                      >
+                                                        Remove
+                                                      </AlertDialogAction>
+                                                    </AlertDialogFooter>
+                                                  </AlertDialogContent>
+                                                </AlertDialog>
+                                              </TableCell>
+                                            </TableRow>
+                                          ))}
+                                        </TableBody>
+                                      </Table>
+                                    ) : (
+                                      <div className="text-center py-8 text-muted-foreground">
+                                        No users assigned to this tenant
+                                      </div>
+                                    )}
+                                  </div>
+                                </div>
+                              </DialogContent>
+                            </Dialog>
+                            
                             <AlertDialog>
                               <AlertDialogTrigger asChild>
                                 <Button variant="outline" size="sm">
