@@ -72,23 +72,36 @@ const PDFViewerPage = () => {
 
   useEffect(() => {
     const fetchDocument = async () => {
+      console.log('Starting document fetch for ID:', documentId);
+      
       try {
         // First check if we have an active session
         const { data: { session }, error: sessionError } = await supabase.auth.getSession();
         
         if (sessionError) {
           console.error('Session error:', sessionError);
+          toast({
+            title: "Authentication Error",
+            description: "Please log in again",
+            variant: "destructive",
+          });
           navigate('/auth');
           return;
         }
 
         if (!session?.user) {
           console.log('No active session found, redirecting to auth');
+          toast({
+            title: "Not Authenticated", 
+            description: "Please log in to view documents",
+            variant: "destructive",
+          });
           navigate('/auth');
           return;
         }
 
-        console.log('User authenticated, fetching document:', documentId);
+        console.log('User authenticated:', session.user.id);
+        console.log('Fetching document with ID:', documentId);
 
         // Check if user has access to this document
         const { data, error } = await supabase
@@ -99,43 +112,69 @@ const PDFViewerPage = () => {
 
         if (error) {
           console.error('Error fetching document:', error);
-          throw error;
+          if (error.code === 'PGRST116') {
+            toast({
+              title: "Document Not Found",
+              description: "The requested document does not exist or you don't have access to it",
+              variant: "destructive",
+            });
+          } else {
+            toast({
+              title: "Database Error",
+              description: error.message,
+              variant: "destructive",
+            });
+          }
+          navigate('/dashboard');
+          return;
         }
 
-        // Get public URL for the PDF since bucket is now public
+        console.log('Document fetched successfully:', data);
+        setDocument(data);
+
+        // Generate PDF URL if file exists
         if (data.file_url) {
-          console.log('Document file_url:', data.file_url);
+          console.log('Document has file_url:', data.file_url);
           
-          // Try public URL first
           const { data: publicUrlData } = supabase.storage
             .from('documents')
             .getPublicUrl(data.file_url);
 
           console.log('Generated public URL:', publicUrlData.publicUrl);
           
-          // Verify the file exists by trying to fetch it
+          // Test if the file is accessible
           try {
             const response = await fetch(publicUrlData.publicUrl, { method: 'HEAD' });
+            console.log('File accessibility test:', response.status, response.statusText);
+            
             if (response.ok) {
               setPdfUrl(publicUrlData.publicUrl);
-              console.log('PDF URL verified and set successfully');
+              console.log('PDF URL set successfully');
             } else {
-              console.error('PDF file not accessible:', response.status, response.statusText);
+              console.error('PDF file not accessible:', response.status);
               toast({
-                title: "Error",
-                description: `PDF file not accessible (${response.status})`,
+                title: "File Not Found",
+                description: `PDF file is not accessible (Error: ${response.status})`,
                 variant: "destructive",
               });
             }
           } catch (fetchError) {
-            console.error('Error verifying PDF access:', fetchError);
-            // Still try to set the URL - the error might be CORS related
+            console.error('Error testing file access:', fetchError);
+            // Still set the URL in case it's a CORS issue
             setPdfUrl(publicUrlData.publicUrl);
+            console.log('Set PDF URL despite access test failure (might be CORS)');
           }
+        } else {
+          console.log('Document has no file_url');
+          toast({
+            title: "No File",
+            description: "This document doesn't have an associated PDF file",
+            variant: "destructive",
+          });
         }
 
-        setDocument(data);
       } catch (error: any) {
+        console.error('Unexpected error in fetchDocument:', error);
         toast({
           title: "Error",
           description: error.message || "Failed to load document",
@@ -144,31 +183,45 @@ const PDFViewerPage = () => {
         navigate('/dashboard');
       } finally {
         setIsLoading(false);
+        console.log('Fetch document completed, loading set to false');
       }
     };
 
     if (documentId) {
+      console.log('Document ID provided:', documentId);
       fetchDocument();
+    } else {
+      console.error('No document ID provided');
+      toast({
+        title: "Invalid URL",
+        description: "No document ID specified",
+        variant: "destructive",
+      });
+      navigate('/dashboard');
     }
   }, [documentId, navigate]);
 
   if (isLoading) {
+    console.log('Component is in loading state');
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
           <p className="mt-2 text-muted-foreground">Loading document...</p>
+          <p className="text-xs text-muted-foreground">Document ID: {documentId}</p>
         </div>
       </div>
     );
   }
 
   if (!document) {
+    console.log('No document found, showing not found message');
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <Card>
           <CardContent className="p-6 text-center">
             <p className="text-muted-foreground">Document not found</p>
+            <p className="text-xs text-muted-foreground mt-2">Document ID: {documentId}</p>
             <Button onClick={() => navigate('/dashboard')} className="mt-4">
               <ArrowLeft className="mr-2 h-4 w-4" />
               Back to Dashboard
@@ -178,6 +231,8 @@ const PDFViewerPage = () => {
       </div>
     );
   }
+
+  console.log('Rendering PDF viewer. Document:', document?.title, 'PDF URL:', pdfUrl);
 
   return (
     <div className="min-h-screen bg-background">
