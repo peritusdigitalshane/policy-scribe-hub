@@ -405,6 +405,29 @@ const Dashboard = () => {
     }
   };
 
+  const deleteTenant = async (tenantId: string) => {
+    try {
+      const { error } = await supabase
+        .from("tenants")
+        .delete()
+        .eq("id", tenantId);
+
+      if (error) throw error;
+
+      toast({ 
+        title: "Success", 
+        description: "Tenant deleted successfully" 
+      });
+      fetchTenants();
+    } catch (error: any) {
+      toast({ 
+        title: "Error", 
+        description: error.message, 
+        variant: "destructive" 
+      });
+    }
+  };
+
   const updateDocument = async (documentId: string, updates: {
     title?: string;
     description?: string;
@@ -644,6 +667,7 @@ const Dashboard = () => {
                       <TableHead>Slug</TableHead>
                       <TableHead>Status</TableHead>
                       <TableHead>Created</TableHead>
+                      <TableHead>Actions</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -657,6 +681,34 @@ const Dashboard = () => {
                           </Badge>
                         </TableCell>
                         <TableCell>{new Date(tenant.created_at).toLocaleDateString()}</TableCell>
+                        <TableCell>
+                          <div className="flex items-center space-x-2">
+                            <AlertDialog>
+                              <AlertDialogTrigger asChild>
+                                <Button variant="outline" size="sm">
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </AlertDialogTrigger>
+                              <AlertDialogContent>
+                                <AlertDialogHeader>
+                                  <AlertDialogTitle>Delete Tenant</AlertDialogTitle>
+                                  <AlertDialogDescription>
+                                    Are you sure you want to delete "{tenant.name}"? This action cannot be undone and will remove all associated data.
+                                  </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                  <AlertDialogAction 
+                                    onClick={() => deleteTenant(tenant.id)}
+                                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                  >
+                                    Delete
+                                  </AlertDialogAction>
+                                </AlertDialogFooter>
+                              </AlertDialogContent>
+                            </AlertDialog>
+                          </div>
+                        </TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
