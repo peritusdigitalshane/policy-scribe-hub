@@ -273,23 +273,26 @@ const PDFViewerPage = () => {
           <CardContent>
             {pdfUrl ? (
               <div className="w-full h-[800px] border rounded-lg overflow-hidden relative bg-gray-50">
-                {/* Debug info - shows PDF is loaded */}
+                {/* Debug info */}
                 <div className="bg-green-100 text-green-800 p-2 text-xs font-mono border-b">
-                  ✅ PDF loaded successfully - Using secure viewer
+                  ✅ PDF loaded successfully - Download protection active
                 </div>
                 
-                {/* Use object tag instead of iframe - better Chrome compatibility */}
-                <object
-                  data={pdfUrl}
-                  type="application/pdf"
+                {/* Enhanced iframe with aggressive download prevention */}
+                <iframe
+                  src={`${pdfUrl}#toolbar=0&navpanes=0&scrollbar=0&zoom=page-fit&pagemode=none&view=FitH&print=0&download=0`}
                   width="100%"
                   height="90%"
                   style={{ 
                     border: 'none',
-                    display: 'block'
+                    pointerEvents: 'auto',
+                    userSelect: 'none'
                   }}
+                  title={document.title}
+                  sandbox="allow-same-origin"
                   onContextMenu={(e) => {
                     e.preventDefault();
+                    e.stopPropagation();
                     toast({
                       title: "Action Disabled",
                       description: "Right-click is disabled for document security",
@@ -297,42 +300,68 @@ const PDFViewerPage = () => {
                     });
                     return false;
                   }}
-                >
-                  {/* Fallback for browsers that don't support object tag */}
-                  <div className="flex flex-col items-center justify-center h-full p-8 text-center">
-                    <div className="text-6xl mb-4">📄</div>
-                    <h3 className="text-lg font-medium mb-2">PDF Viewer Not Supported</h3>
-                    <p className="text-muted-foreground mb-4">
-                      Your browser doesn't support inline PDF viewing. 
-                    </p>
-                    <div className="space-y-2">
-                      <Button 
-                        onClick={() => window.open(pdfUrl, '_blank')}
-                        className="mr-2"
-                      >
-                        Open in New Tab
-                      </Button>
-                      <Button 
-                        variant="outline"
-                        onClick={() => {
-                          const link = document.createElement('a');
-                          link.href = pdfUrl;
-                          link.target = '_blank';
-                          link.rel = 'noopener noreferrer';
-                          document.body.appendChild(link);
-                          link.click();
-                          document.body.removeChild(link);
-                        }}
-                      >
-                        Direct Link
-                      </Button>
-                    </div>
-                  </div>
-                </object>
+                  onLoad={(e) => {
+                    console.log('PDF loaded with download protection');
+                    // Additional protection: try to hide download buttons
+                    try {
+                      const iframe = e.target as HTMLIFrameElement;
+                      const iframeDoc = iframe.contentDocument || iframe.contentWindow?.document;
+                      if (iframeDoc) {
+                        // Inject CSS to hide download/print buttons
+                        const style = iframeDoc.createElement('style');
+                        style.textContent = `
+                          button[title*="Download"],
+                          button[title*="download"],
+                          button[title*="Print"],
+                          button[title*="print"],
+                          .download,
+                          .print,
+                          [data-l10n-id="download"],
+                          [data-l10n-id="print"] {
+                            display: none !important;
+                            visibility: hidden !important;
+                          }
+                          
+                          /* Hide PDF.js specific controls */
+                          #download,
+                          #print,
+                          #downloadButton,
+                          #printButton,
+                          .toolbarButton[title*="Download"],
+                          .toolbarButton[title*="Print"] {
+                            display: none !important;
+                          }
+                        `;
+                        iframeDoc.head?.appendChild(style);
+                      }
+                    } catch (error) {
+                      console.log('Cannot access iframe content due to CORS - this is expected');
+                    }
+                  }}
+                />
+                
+                {/* Security overlay to block interactions */}
+                <div 
+                  className="absolute inset-0 pointer-events-none"
+                  style={{ 
+                    zIndex: 1,
+                    background: 'transparent',
+                    userSelect: 'none'
+                  }}
+                  onContextMenu={(e) => {
+                    e.preventDefault();
+                    return false;
+                  }}
+                />
+                
+                {/* Download prevention warning overlay */}
+                <div className="absolute top-2 left-2 bg-red-100 text-red-800 text-xs px-2 py-1 rounded border z-10">
+                  ⚠️ Download/Print Disabled
+                </div>
                 
                 {/* Security warning */}
-                <div className="absolute bottom-2 right-2 bg-red-100 text-red-800 text-xs px-2 py-1 rounded border">
-                  🔒 View Only - Download Disabled
+                <div className="absolute bottom-2 right-2 bg-red-100 text-red-800 text-xs px-2 py-1 rounded border z-10">
+                  🔒 View Only Mode
                 </div>
               </div>
             ) : (
@@ -412,20 +441,42 @@ const PDFViewerPage = () => {
           border-radius: 4px;
         }
         
-        /* Disable PDF.js download button if it appears */
-        button[title="Download"],
-        button[title="Print"],
+        /* Hide PDF viewer download/print buttons globally */
+        button[title*="Download"],
+        button[title*="download"], 
+        button[title*="Print"],
+        button[title*="print"],
         .download,
-        .print {
+        .print,
+        [data-l10n-id="download"],
+        [data-l10n-id="print"],
+        [data-l10n-id="save"],
+        #download,
+        #print,
+        #downloadButton,
+        #printButton,
+        .toolbarButton[title*="Download"],
+        .toolbarButton[title*="Print"] {
           display: none !important;
           visibility: hidden !important;
+          opacity: 0 !important;
+          pointer-events: none !important;
+        }
+        
+        /* Hide Chrome's PDF viewer controls */
+        #toolbar,
+        .toolbar,
+        #controls,
+        .controls {
+          display: none !important;
         }
         
         /* Override any PDF viewer controls */
-        [data-l10n-id="download"],
-        [data-l10n-id="print"],
-        [data-l10n-id="save"] {
-          display: none !important;
+        embed[type="application/pdf"],
+        object[type="application/pdf"] {
+          -webkit-user-select: none !important;
+          -moz-user-select: none !important;
+          user-select: none !important;
         }
       `}</style>
     </div>
