@@ -12,98 +12,106 @@ const PDFViewerPage = () => {
   const [document, setDocument] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [pdfUrl, setPdfUrl] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   // Enhanced security - prevent all download/save attempts
   useEffect(() => {
-    const handleKeyDown = (event: KeyboardEvent) => {
-      // Prevent common download/save shortcuts
-      if ((event.ctrlKey || event.metaKey) && 
-          (event.key === 's' || event.key === 'p' || event.key === 'a' || 
-           event.key === 'S' || event.key === 'P' || event.key === 'A')) {
+    try {
+      const handleKeyDown = (event: KeyboardEvent) => {
+        // Prevent common download/save shortcuts
+        if ((event.ctrlKey || event.metaKey) && 
+            (event.key === 's' || event.key === 'p' || event.key === 'a' || 
+             event.key === 'S' || event.key === 'P' || event.key === 'A')) {
+          event.preventDefault();
+          event.stopPropagation();
+          toast({
+            title: "Action Disabled",
+            description: "Download and print functions are disabled for document security",
+            variant: "destructive",
+          });
+        }
+        
+        // Prevent F12, inspect element shortcuts
+        if (event.key === 'F12' || 
+            (event.ctrlKey && event.shiftKey && (event.key === 'I' || event.key === 'C' || event.key === 'J')) ||
+            (event.ctrlKey && event.key === 'U')) {
+          event.preventDefault();
+          event.stopPropagation();
+          toast({
+            title: "Action Disabled", 
+            description: "Developer tools are disabled for document security",
+            variant: "destructive",
+          });
+        }
+      };
+
+      const handleRightClick = (event: MouseEvent) => {
         event.preventDefault();
         event.stopPropagation();
         toast({
           title: "Action Disabled",
-          description: "Download and print functions are disabled for document security",
+          description: "Right-click is disabled for document security",
           variant: "destructive",
         });
+        return false;
+      };
+
+      const handleDragStart = (event: DragEvent) => {
+        event.preventDefault();
+        return false;
+      };
+
+      // Add event listeners safely
+      if (typeof window !== 'undefined' && window.document) {
+        window.document.addEventListener('keydown', handleKeyDown);
+        window.document.addEventListener('contextmenu', handleRightClick);
+        window.document.addEventListener('dragstart', handleDragStart);
       }
       
-      // Prevent F12, inspect element shortcuts
-      if (event.key === 'F12' || 
-          (event.ctrlKey && event.shiftKey && (event.key === 'I' || event.key === 'C' || event.key === 'J')) ||
-          (event.ctrlKey && event.key === 'U')) {
-        event.preventDefault();
-        event.stopPropagation();
-        toast({
-          title: "Action Disabled", 
-          description: "Developer tools are disabled for document security",
-          variant: "destructive",
-        });
-      }
-    };
-
-    const handleRightClick = (event: MouseEvent) => {
-      event.preventDefault();
-      event.stopPropagation();
-      toast({
-        title: "Action Disabled",
-        description: "Right-click is disabled for document security",
-        variant: "destructive",
-      });
-      return false;
-    };
-
-    const handleDragStart = (event: DragEvent) => {
-      event.preventDefault();
-      return false;
-    };
-
-    document.addEventListener('keydown', handleKeyDown);
-    document.addEventListener('contextmenu', handleRightClick);
-    document.addEventListener('dragstart', handleDragStart);
-    
-    return () => {
-      document.removeEventListener('keydown', handleKeyDown);
-      document.removeEventListener('contextmenu', handleRightClick);
-      document.removeEventListener('dragstart', handleDragStart);
-    };
+      return () => {
+        // Clean up event listeners safely
+        if (typeof window !== 'undefined' && window.document) {
+          window.document.removeEventListener('keydown', handleKeyDown);
+          window.document.removeEventListener('contextmenu', handleRightClick);
+          window.document.removeEventListener('dragstart', handleDragStart);
+        }
+      };
+    } catch (err) {
+      console.error('Error setting up security event listeners:', err);
+    }
   }, []);
 
   useEffect(() => {
     const fetchDocument = async () => {
-      console.log('Starting document fetch for ID:', documentId);
-      
+      if (!documentId) {
+        setError("No document ID provided");
+        setIsLoading(false);
+        return;
+      }
+
       try {
+        console.log('Starting document fetch for ID:', documentId);
+        
         // First check if we have an active session
         const { data: { session }, error: sessionError } = await supabase.auth.getSession();
         
         if (sessionError) {
           console.error('Session error:', sessionError);
-          toast({
-            title: "Authentication Error",
-            description: "Please log in again",
-            variant: "destructive",
-          });
-          navigate('/auth');
+          setError("Authentication error");
+          setIsLoading(false);
           return;
         }
 
         if (!session?.user) {
-          console.log('No active session found, redirecting to auth');
-          toast({
-            title: "Not Authenticated", 
-            description: "Please log in to view documents",
-            variant: "destructive",
-          });
-          navigate('/auth');
+          console.log('No active session found');
+          setError("Please log in to view documents");
+          setIsLoading(false);
           return;
         }
 
         console.log('User authenticated:', session.user.id);
-        console.log('Fetching document with ID:', documentId);
 
-        // Check if user has access to this document
+        // Fetch document
         const { data, error } = await supabase
           .from('documents')
           .select('*')
@@ -113,19 +121,11 @@ const PDFViewerPage = () => {
         if (error) {
           console.error('Error fetching document:', error);
           if (error.code === 'PGRST116') {
-            toast({
-              title: "Document Not Found",
-              description: "The requested document does not exist or you don't have access to it",
-              variant: "destructive",
-            });
+            setError("Document not found or access denied");
           } else {
-            toast({
-              title: "Database Error",
-              description: error.message,
-              variant: "destructive",
-            });
+            setError(`Database error: ${error.message}`);
           }
-          navigate('/dashboard');
+          setIsLoading(false);
           return;
         }
 
@@ -141,68 +141,24 @@ const PDFViewerPage = () => {
             .getPublicUrl(data.file_url);
 
           console.log('Generated public URL:', publicUrlData.publicUrl);
-          
-          // Test if the file is accessible
-          try {
-            const response = await fetch(publicUrlData.publicUrl, { method: 'HEAD' });
-            console.log('File accessibility test:', response.status, response.statusText);
-            
-            if (response.ok) {
-              setPdfUrl(publicUrlData.publicUrl);
-              console.log('PDF URL set successfully');
-            } else {
-              console.error('PDF file not accessible:', response.status);
-              toast({
-                title: "File Not Found",
-                description: `PDF file is not accessible (Error: ${response.status})`,
-                variant: "destructive",
-              });
-            }
-          } catch (fetchError) {
-            console.error('Error testing file access:', fetchError);
-            // Still set the URL in case it's a CORS issue
-            setPdfUrl(publicUrlData.publicUrl);
-            console.log('Set PDF URL despite access test failure (might be CORS)');
-          }
+          setPdfUrl(publicUrlData.publicUrl);
         } else {
           console.log('Document has no file_url');
-          toast({
-            title: "No File",
-            description: "This document doesn't have an associated PDF file",
-            variant: "destructive",
-          });
+          setError("This document doesn't have an associated PDF file");
         }
 
       } catch (error: any) {
-        console.error('Unexpected error in fetchDocument:', error);
-        toast({
-          title: "Error",
-          description: error.message || "Failed to load document",
-          variant: "destructive",
-        });
-        navigate('/dashboard');
+        console.error('Unexpected error:', error);
+        setError(`Failed to load document: ${error.message}`);
       } finally {
         setIsLoading(false);
-        console.log('Fetch document completed, loading set to false');
       }
     };
 
-    if (documentId) {
-      console.log('Document ID provided:', documentId);
-      fetchDocument();
-    } else {
-      console.error('No document ID provided');
-      toast({
-        title: "Invalid URL",
-        description: "No document ID specified",
-        variant: "destructive",
-      });
-      navigate('/dashboard');
-    }
-  }, [documentId, navigate]);
+    fetchDocument();
+  }, [documentId]);
 
   if (isLoading) {
-    console.log('Component is in loading state');
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
@@ -214,8 +170,25 @@ const PDFViewerPage = () => {
     );
   }
 
+  if (error) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <Card>
+          <CardContent className="p-6 text-center">
+            <p className="text-destructive font-medium mb-2">Error Loading Document</p>
+            <p className="text-muted-foreground mb-4">{error}</p>
+            <p className="text-xs text-muted-foreground mb-4">Document ID: {documentId}</p>
+            <Button onClick={() => navigate('/dashboard')} className="mt-4">
+              <ArrowLeft className="mr-2 h-4 w-4" />
+              Back to Dashboard
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   if (!document) {
-    console.log('No document found, showing not found message');
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <Card>
@@ -231,8 +204,6 @@ const PDFViewerPage = () => {
       </div>
     );
   }
-
-  console.log('Rendering PDF viewer. Document:', document?.title, 'PDF URL:', pdfUrl);
 
   return (
     <div className="min-h-screen bg-background">
