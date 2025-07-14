@@ -222,48 +222,44 @@ const PDFViewerPage = () => {
           <CardContent>
             {pdfUrl ? (
               <div className="w-full h-[800px] border rounded-lg overflow-hidden relative">
-                <iframe
-                  src={`${pdfUrl}#toolbar=0&navpanes=0&scrollbar=0&zoom=page-fit&pagemode=none&view=FitH&disableprint=true`}
+                {/* Debug info */}
+                <div className="bg-muted p-2 text-xs font-mono">
+                  Debug: {pdfUrl}
+                </div>
+                
+                {/* Try direct embed first */}
+                <embed
+                  src={pdfUrl}
+                  type="application/pdf"
                   width="100%"
-                  height="100%"
+                  height="90%"
                   style={{ 
                     border: 'none',
-                    pointerEvents: 'auto'
-                  }}
-                  title={document.title}
-                  onContextMenu={(e) => e.preventDefault()}
-                  onLoad={(e) => {
-                    // Disable additional shortcuts when iframe loads
-                    const iframe = e.target as HTMLIFrameElement;
-                    try {
-                      const iframeDoc = iframe.contentDocument || iframe.contentWindow?.document;
-                      if (iframeDoc) {
-                        iframeDoc.addEventListener('keydown', (event) => {
-                          // Prevent common download shortcuts
-                          if ((event.ctrlKey || event.metaKey) && 
-                              (event.key === 's' || event.key === 'p' || event.key === 'a')) {
-                            event.preventDefault();
-                            event.stopPropagation();
-                          }
-                        });
-                      }
-                    } catch (error) {
-                      // Cross-origin restrictions may prevent access
-                      console.log('Cannot access iframe content due to CORS');
-                    }
+                    display: 'block'
                   }}
                 />
-                {/* Overlay to prevent some bypass attempts */}
-                <div 
-                  className="absolute inset-0 pointer-events-none"
-                  style={{ zIndex: 1 }}
-                />
+                
+                {/* Fallback iframe */}
+                <div className="mt-4">
+                  <p className="text-sm text-muted-foreground mb-2">If PDF doesn't show above, try this link:</p>
+                  <a 
+                    href={pdfUrl} 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="text-blue-500 hover:underline"
+                  >
+                    Open PDF in new tab
+                  </a>
+                </div>
               </div>
             ) : (
               <div className="h-96 flex items-center justify-center border rounded-lg bg-muted/20">
                 <div className="text-center space-y-2">
                   <div className="text-4xl">📄</div>
                   <p className="text-muted-foreground">No file available for this document</p>
+                  <p className="text-xs text-muted-foreground">
+                    File URL: {document?.file_url || 'None'}
+                  </p>
                 </div>
               </div>
             )}
