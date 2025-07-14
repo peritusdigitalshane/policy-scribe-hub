@@ -13,7 +13,7 @@ const PDFViewerPage = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [pdfUrl, setPdfUrl] = useState<string | null>(null);
 
-  // Add global keyboard shortcut prevention
+  // Enhanced security - prevent all download/save attempts
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
       // Prevent common download/save shortcuts
@@ -24,24 +24,49 @@ const PDFViewerPage = () => {
         event.stopPropagation();
         toast({
           title: "Action Disabled",
-          description: "Download and print functions are disabled for this document",
+          description: "Download and print functions are disabled for document security",
           variant: "destructive",
         });
       }
       
-      // Prevent F12, right-click menu shortcuts
+      // Prevent F12, inspect element shortcuts
       if (event.key === 'F12' || 
           (event.ctrlKey && event.shiftKey && (event.key === 'I' || event.key === 'C' || event.key === 'J')) ||
           (event.ctrlKey && event.key === 'U')) {
         event.preventDefault();
         event.stopPropagation();
+        toast({
+          title: "Action Disabled", 
+          description: "Developer tools are disabled for document security",
+          variant: "destructive",
+        });
       }
     };
 
+    const handleRightClick = (event: MouseEvent) => {
+      event.preventDefault();
+      event.stopPropagation();
+      toast({
+        title: "Action Disabled",
+        description: "Right-click is disabled for document security",
+        variant: "destructive",
+      });
+      return false;
+    };
+
+    const handleDragStart = (event: DragEvent) => {
+      event.preventDefault();
+      return false;
+    };
+
     document.addEventListener('keydown', handleKeyDown);
+    document.addEventListener('contextmenu', handleRightClick);
+    document.addEventListener('dragstart', handleDragStart);
     
     return () => {
       document.removeEventListener('keydown', handleKeyDown);
+      document.removeEventListener('contextmenu', handleRightClick);
+      document.removeEventListener('dragstart', handleDragStart);
     };
   }, []);
 
@@ -221,35 +246,64 @@ const PDFViewerPage = () => {
           </CardHeader>
           <CardContent>
             {pdfUrl ? (
-              <div className="w-full h-[800px] border rounded-lg overflow-hidden relative">
-                {/* Debug info */}
-                <div className="bg-muted p-2 text-xs font-mono">
-                  Debug: {pdfUrl}
+              <div className="w-full h-[800px] border rounded-lg overflow-hidden relative bg-gray-50">
+                {/* Debug info - remove in production */}
+                <div className="bg-muted p-2 text-xs font-mono border-b">
+                  Debug: PDF loaded successfully
                 </div>
                 
-                {/* Try direct embed first */}
-                <embed
-                  src={pdfUrl}
-                  type="application/pdf"
+                {/* Secure iframe with download prevention */}
+                <iframe
+                  src={`${pdfUrl}#toolbar=0&navpanes=0&scrollbar=1&zoom=page-fit&pagemode=none&view=FitH`}
                   width="100%"
                   height="90%"
                   style={{ 
                     border: 'none',
-                    display: 'block'
+                    pointerEvents: 'auto',
+                    userSelect: 'none'
+                  }}
+                  title={document.title}
+                  sandbox="allow-same-origin allow-scripts"
+                  onContextMenu={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    toast({
+                      title: "Action Disabled",
+                      description: "Right-click is disabled for document security",
+                      variant: "destructive",
+                    });
+                    return false;
+                  }}
+                  onLoad={(e) => {
+                    console.log('PDF loaded successfully');
+                  }}
+                  onError={(e) => {
+                    console.error('PDF loading error');
+                    toast({
+                      title: "Error",
+                      description: "Failed to load PDF document",
+                      variant: "destructive",
+                    });
                   }}
                 />
                 
-                {/* Fallback iframe */}
-                <div className="mt-4">
-                  <p className="text-sm text-muted-foreground mb-2">If PDF doesn't show above, try this link:</p>
-                  <a 
-                    href={pdfUrl} 
-                    target="_blank" 
-                    rel="noopener noreferrer"
-                    className="text-blue-500 hover:underline"
-                  >
-                    Open PDF in new tab
-                  </a>
+                {/* Security overlay to prevent bypass attempts */}
+                <div 
+                  className="absolute inset-0 pointer-events-none"
+                  style={{ 
+                    zIndex: 1,
+                    background: 'transparent',
+                    userSelect: 'none'
+                  }}
+                  onContextMenu={(e) => {
+                    e.preventDefault();
+                    return false;
+                  }}
+                />
+                
+                {/* Security warning */}
+                <div className="absolute bottom-2 right-2 bg-red-100 text-red-800 text-xs px-2 py-1 rounded border">
+                  🔒 View Only - Download Disabled
                 </div>
               </div>
             ) : (
@@ -269,47 +323,80 @@ const PDFViewerPage = () => {
 
       {/* Enhanced security styling */}
       <style>{`
-        body {
-          -webkit-user-select: none;
-          -moz-user-select: none;
-          -ms-user-select: none;
-          user-select: none;
-          -webkit-touch-callout: none;
-          -webkit-tap-highlight-color: transparent;
-        }
-        
-        /* Disable text selection and drag operations */
+        /* Disable all text selection globally */
         * {
-          -webkit-user-drag: none;
-          -khtml-user-drag: none;
-          -moz-user-drag: none;
-          -o-user-drag: none;
-          user-drag: none;
+          -webkit-user-select: none !important;
+          -moz-user-select: none !important;
+          -ms-user-select: none !important;
+          user-select: none !important;
+          -webkit-touch-callout: none !important;
+          -webkit-tap-highlight-color: transparent !important;
+          -webkit-user-drag: none !important;
+          -khtml-user-drag: none !important;
+          -moz-user-drag: none !important;
+          -o-user-drag: none !important;
+          user-drag: none !important;
         }
         
-        /* Enhanced iframe security */
+        /* Hide print and download buttons in PDF viewer */
         iframe {
-          -webkit-user-select: none;
-          -moz-user-select: none;
-          -ms-user-select: none;
-          user-select: none;
-          -webkit-touch-callout: none;
-          pointer-events: auto;
+          -webkit-user-select: none !important;
+          -moz-user-select: none !important;
+          -ms-user-select: none !important;
+          user-select: none !important;
+          -webkit-touch-callout: none !important;
+          pointer-events: auto !important;
         }
         
-        /* Disable image drag/save */
+        /* Disable image saving */
         img {
-          -webkit-user-drag: none;
-          -khtml-user-drag: none;
-          -moz-user-drag: none;
-          -o-user-drag: none;
-          user-drag: none;
-          pointer-events: none;
+          -webkit-user-drag: none !important;
+          -khtml-user-drag: none !important;
+          -moz-user-drag: none !important;
+          -o-user-drag: none !important;
+          user-drag: none !important;
+          pointer-events: none !important;
         }
         
-        /* Hide context menu completely */
+        /* Disable context menu completely */
+        body {
+          -webkit-touch-callout: none !important;
+          -webkit-user-select: none !important;
+          -khtml-user-select: none !important;
+          -moz-user-select: none !important;
+          -ms-user-select: none !important;
+          user-select: none !important;
+        }
+        
+        /* Hide scrollbars to prevent drag interactions */
+        ::-webkit-scrollbar {
+          width: 8px;
+        }
+        
         ::-webkit-scrollbar-track {
-          -webkit-user-select: none;
+          -webkit-user-select: none !important;
+          background: #f1f1f1;
+        }
+        
+        ::-webkit-scrollbar-thumb {
+          background: #888;
+          border-radius: 4px;
+        }
+        
+        /* Disable PDF.js download button if it appears */
+        button[title="Download"],
+        button[title="Print"],
+        .download,
+        .print {
+          display: none !important;
+          visibility: hidden !important;
+        }
+        
+        /* Override any PDF viewer controls */
+        [data-l10n-id="download"],
+        [data-l10n-id="print"],
+        [data-l10n-id="save"] {
+          display: none !important;
         }
       `}</style>
     </div>
