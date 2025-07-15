@@ -5,10 +5,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { ArrowLeft, Shield, Calendar, FileType, Tag } from "lucide-react";
-import { Document, Page, pdfjs } from 'react-pdf';
-
-// Configure PDF.js worker
-pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.js`;
 
 const PDFViewerPage = () => {
   const { documentId } = useParams();
@@ -17,8 +13,6 @@ const PDFViewerPage = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [pdfUrl, setPdfUrl] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [numPages, setNumPages] = useState<number>(0);
-  const [currentPage, setCurrentPage] = useState<number>(1);
 
   // Enhanced security - prevent all download/save attempts
   useEffect(() => {
@@ -278,95 +272,32 @@ const PDFViewerPage = () => {
           </CardHeader>
           <CardContent>
             {pdfUrl ? (
-              <div className="w-full border rounded-lg overflow-hidden relative bg-gray-50">
-                {/* PDF Controls */}
+              <div className="w-full border rounded-lg overflow-hidden bg-gray-50">
+                {/* Simple secure viewer using Google Docs viewer */}
                 <div className="bg-primary/10 border-b p-2 flex items-center justify-between">
-                  <div className="flex items-center gap-4">
-                    <div className="flex items-center gap-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
-                        disabled={currentPage <= 1}
-                      >
-                        Previous
-                      </Button>
-                      <span className="text-sm px-2">
-                        Page {currentPage} of {numPages}
-                      </span>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setCurrentPage(Math.min(numPages, currentPage + 1))}
-                        disabled={currentPage >= numPages}
-                      >
-                        Next
-                      </Button>
-                    </div>
-                  </div>
+                  <div className="text-sm font-medium">Secure PDF Viewer</div>
                   <div className="flex items-center gap-2 text-xs text-muted-foreground">
                     <Shield className="h-3 w-3" />
                     Download Protected
                   </div>
                 </div>
-
-                {/* PDF Viewer */}
-                <div className="flex justify-center bg-gray-100 p-4" style={{ minHeight: '600px' }}>
-                  <Document
-                    file={pdfUrl}
-                    onLoadSuccess={({ numPages }) => {
-                      setNumPages(numPages);
-                      console.log('PDF loaded successfully:', numPages, 'pages');
-                    }}
-                    onLoadError={(error) => {
-                      console.error('PDF load error:', error);
-                      toast({
-                        title: "PDF Load Error",
-                        description: "Failed to load PDF document",
-                        variant: "destructive",
-                      });
-                    }}
-                    loading={
-                      <div className="flex items-center justify-center h-96">
-                        <div className="text-center">
-                          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
-                          <p className="mt-2 text-muted-foreground">Loading PDF...</p>
-                        </div>
-                      </div>
-                    }
-                    noData={
-                      <div className="flex items-center justify-center h-96">
-                        <p className="text-muted-foreground">No PDF data found</p>
-                      </div>
-                    }
-                    error={
-                      <div className="flex items-center justify-center h-96">
-                        <div className="text-center text-destructive">
-                          <p>Failed to load PDF</p>
-                          <p className="text-sm mt-2">The document may be corrupted or inaccessible</p>
-                        </div>
-                      </div>
-                    }
-                  >
-                    <Page
-                      pageNumber={currentPage}
-                      width={800}
-                      onContextMenu={(e) => {
-                        e.preventDefault();
-                        toast({
-                          title: "Action Disabled",
-                          description: "Right-click is disabled for document security",
-                          variant: "destructive",
-                        });
-                        return false;
-                      }}
-                      onDragStart={(e) => {
-                        e.preventDefault();
-                        return false;
-                      }}
-                    />
-                  </Document>
-                </div>
+                
+                <iframe
+                  src={`https://docs.google.com/viewer?url=${encodeURIComponent(pdfUrl)}&embedded=true`}
+                  width="100%"
+                  height="600"
+                  style={{ border: 'none' }}
+                  title={document.title}
+                  onContextMenu={(e) => {
+                    e.preventDefault();
+                    toast({
+                      title: "Action Disabled",
+                      description: "Right-click is disabled for document security",
+                      variant: "destructive",
+                    });
+                    return false;
+                  }}
+                />
               </div>
             ) : (
               <div className="h-96 flex items-center justify-center border rounded-lg bg-muted/20">
