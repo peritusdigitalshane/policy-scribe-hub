@@ -7,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
@@ -266,6 +267,48 @@ const MembershipManager = () => {
       .map(m => m.tenants);
   };
 
+  const removeUser = async (userId: string) => {
+    try {
+      // Deactivate the user profile
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .update({ is_active: false })
+        .eq('id', userId);
+
+      if (profileError) throw profileError;
+
+      // Remove all tenant memberships
+      const { error: membershipError } = await supabase
+        .from('user_tenant_memberships')
+        .delete()
+        .eq('user_id', userId);
+
+      if (membershipError) throw membershipError;
+
+      // Remove user roles
+      const { error: roleError } = await supabase
+        .from('user_roles')
+        .delete()
+        .eq('user_id', userId);
+
+      if (roleError) throw roleError;
+
+      toast({
+        title: "Success",
+        description: "User removed successfully",
+      });
+
+      // Refresh data
+      fetchAllData();
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to remove user",
+        variant: "destructive",
+      });
+    }
+  };
+
   const filteredUsers = users.filter(user =>
     user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
     `${user.first_name} ${user.last_name}`.toLowerCase().includes(searchTerm.toLowerCase())
@@ -513,12 +556,93 @@ const MembershipManager = () => {
                     </TableCell>
                     <TableCell>
                       <div className="flex gap-2">
-                        <Button variant="outline" size="sm">
-                          <Edit className="h-4 w-4" />
-                        </Button>
-                        <Button variant="outline" size="sm">
-                          <Eye className="h-4 w-4" />
-                        </Button>
+                        <Dialog>
+                          <DialogTrigger asChild>
+                            <Button variant="outline" size="sm">
+                              <Eye className="h-4 w-4" />
+                            </Button>
+                          </DialogTrigger>
+                          <DialogContent className="max-w-2xl">
+                            <DialogHeader>
+                              <DialogTitle>User Details</DialogTitle>
+                              <DialogDescription>
+                                View user information and tenant memberships
+                              </DialogDescription>
+                            </DialogHeader>
+                            <div className="space-y-4">
+                              <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                  <Label className="text-sm font-medium">Name</Label>
+                                  <p className="text-sm">{user.first_name} {user.last_name}</p>
+                                </div>
+                                <div>
+                                  <Label className="text-sm font-medium">Email</Label>
+                                  <p className="text-sm">{user.email}</p>
+                                </div>
+                                <div>
+                                  <Label className="text-sm font-medium">Global Role</Label>
+                                  <Badge variant={roleInfo?.color || "outline"}>
+                                    {roleInfo?.title || "Standard User"}
+                                  </Badge>
+                                </div>
+                                <div>
+                                  <Label className="text-sm font-medium">Status</Label>
+                                  <Badge variant={user.is_active ? "default" : "secondary"}>
+                                    {user.is_active ? "Active" : "Inactive"}
+                                  </Badge>
+                                </div>
+                              </div>
+                              <div>
+                                <Label className="text-sm font-medium">Tenant Memberships</Label>
+                                <div className="mt-2 space-y-2">
+                                  {userTenants.map((tenant) => (
+                                    <div key={tenant.id} className="flex items-center justify-between p-2 border rounded">
+                                      <span className="text-sm">{tenant.name}</span>
+                                      <Badge variant="secondary">Member</Badge>
+                                    </div>
+                                  ))}
+                                  {userTenants.length === 0 && (
+                                    <p className="text-sm text-muted-foreground">No tenant assignments</p>
+                                  )}
+                                </div>
+                              </div>
+                              <div>
+                                <Label className="text-sm font-medium">Account Created</Label>
+                                <p className="text-sm">{new Date(user.created_at).toLocaleDateString()}</p>
+                              </div>
+                            </div>
+                          </DialogContent>
+                        </Dialog>
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button variant="outline" size="sm" className="text-destructive hover:text-destructive">
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>Remove User</AlertDialogTitle>
+                              <AlertDialogDescription>
+                                Are you sure you want to remove {user.first_name} {user.last_name}? This will:
+                                <ul className="mt-2 ml-4 list-disc text-sm">
+                                  <li>Deactivate their account</li>
+                                  <li>Remove all tenant memberships</li>
+                                  <li>Prevent them from accessing the platform</li>
+                                </ul>
+                                This action cannot be undone.
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Cancel</AlertDialogCancel>
+                              <AlertDialogAction
+                                onClick={() => removeUser(user.id)}
+                                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                              >
+                                Remove User
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
                       </div>
                     </TableCell>
                   </TableRow>
