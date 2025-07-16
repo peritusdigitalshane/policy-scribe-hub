@@ -79,6 +79,17 @@ interface Document {
   created_at: string;
   last_reviewed?: string;
   category?: string;
+  category_id?: string;
+}
+
+interface DocumentCategory {
+  id: string;
+  name: string;
+  description?: string;
+  color: string;
+  icon: string;
+  is_active: boolean;
+  created_at: string;
 }
 
 interface TenantMembership {
@@ -98,18 +109,23 @@ const Dashboard = () => {
   const [users, setUsers] = useState<Profile[]>([]);
   const [documents, setDocuments] = useState<Document[]>([]);
   const [memberships, setMemberships] = useState<TenantMembership[]>([]);
+  const [categories, setCategories] = useState<DocumentCategory[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
+  const [selectedDocuments, setSelectedDocuments] = useState<string[]>([]);
+  const [bulkAssignmentMode, setBulkAssignmentMode] = useState(false);
   const navigate = useNavigate();
 
   // Form states
   const [tenantForm, setTenantForm] = useState({ name: "", slug: "", description: "" });
   const [userForm, setUserForm] = useState({ email: "", firstName: "", lastName: "", password: "", tenantId: "", role: "user" });
-  const [documentForm, setDocumentForm] = useState({ title: "", description: "", type: "policy", selectedTenants: [] as string[] });
+  const [documentForm, setDocumentForm] = useState({ title: "", description: "", type: "policy", selectedTenants: [] as string[], categoryId: "" });
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [userAssignmentForm, setUserAssignmentForm] = useState({ userId: "", role: "user" });
   const [selectedTenantForUsers, setSelectedTenantForUsers] = useState<string>("");
+  const [categoryForm, setCategoryForm] = useState({ name: "", description: "", color: "#3B82F6", icon: "folder" });
+  const [bulkAssignForm, setBulkAssignForm] = useState({ selectedTenant: "", selectedCategory: "" });
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
@@ -136,6 +152,7 @@ const Dashboard = () => {
       fetchUsers();
       fetchDocuments();
       fetchMemberships();
+      fetchCategories();
     }
   }, [user]);
 
@@ -188,13 +205,31 @@ const Dashboard = () => {
     try {
       const { data, error } = await supabase
         .from("documents")
-        .select("*")
+        .select(`
+          *,
+          document_categories(name, color, icon)
+        `)
         .order("created_at", { ascending: false });
 
       if (error) throw error;
       setDocuments(data || []);
     } catch (error) {
       console.error("Error fetching documents:", error);
+    }
+  };
+
+  const fetchCategories = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("document_categories")
+        .select("*")
+        .eq("is_active", true)
+        .order("name");
+
+      if (error) throw error;
+      setCategories(data || []);
+    } catch (error) {
+      console.error("Error fetching categories:", error);
     }
   };
 
@@ -294,7 +329,8 @@ const Dashboard = () => {
           description: documentForm.description,
           document_type: documentForm.type as "policy" | "standard",
           file_url: filePath,
-          author_id: user?.id
+          author_id: user?.id,
+          category_id: documentForm.categoryId || null
         })
         .select()
         .single();
@@ -315,7 +351,7 @@ const Dashboard = () => {
       }
 
       toast({ title: "Success", description: "PDF uploaded successfully" });
-      setDocumentForm({ title: "", description: "", type: "policy", selectedTenants: [] });
+      setDocumentForm({ title: "", description: "", type: "policy", selectedTenants: [], categoryId: "" });
       setSelectedFile(null);
       fetchDocuments();
     } catch (error: any) {
@@ -491,11 +527,62 @@ const Dashboard = () => {
     return users.filter(u => !assignedUserIds.includes(u.id));
   };
 
+  const createCategory = async () => {
+    try {
+      const { error } = await supabase
+        .from("document_categories")
+        .insert([{
+          ...categoryForm,
+          created_by: user?.id
+        }]);
+
+      if (error) throw error;
+
+      toast({ title: "Success", description: "Category created successfully" });
+      setCategoryForm({ name: "", description: "", color: "#3B82F6", icon: "folder" });
+      fetchCategories();
+    } catch (error: any) {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    }
+  };
+
+  const bulkAssignDocuments = async () => {
+    if (!bulkAssignForm.selectedTenant || selectedDocuments.length === 0) {
+      toast({ title: "Error", description: "Please select a tenant and documents", variant: "destructive" });
+      return;
+    }
+
+    try {
+      for (const documentId of selectedDocuments) {
+        await supabase
+          .from("tenant_document_permissions")
+          .insert({
+            document_id: documentId,
+            tenant_id: bulkAssignForm.selectedTenant,
+            can_view: true,
+            can_download: false,
+            granted_by: user?.id
+          });
+      }
+
+      toast({ 
+        title: "Success", 
+        description: `${selectedDocuments.length} documents assigned to tenant successfully` 
+      });
+      setSelectedDocuments([]);
+      setBulkAssignmentMode(false);
+      setBulkAssignForm({ selectedTenant: "", selectedCategory: "" });
+    } catch (error: any) {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    }
+  };
+
   const updateDocument = async (documentId: string, updates: {
     title?: string;
     description?: string;
     document_type?: "policy" | "standard" | "procedure" | "form" | "template" | "guideline" | "framework" | "assessment" | "audit" | "certification" | "compliance" | "risk_management" | "cybersecurity" | "privacy" | "workplace_safety" | "quality_management" | "environmental" | "business_continuity" | "incident_response" | "training_material" | "checklist";
     category?: string;
+    category_id?: string;
     last_reviewed?: string | null;
   }) => {
     try {
@@ -1266,10 +1353,11 @@ const Dashboard = () => {
                         </TableCell>
                          <TableCell>
                            <div className="flex gap-2">
-                             <EditDocumentDialog 
-                               document={doc} 
-                               onUpdate={updateDocument}
-                             />
+                              <EditDocumentDialog 
+                                document={doc} 
+                                onUpdate={updateDocument}
+                                categories={categories}
+                              />
                              <Button
                                variant="outline"
                                size="sm"
@@ -1336,7 +1424,103 @@ const Dashboard = () => {
           {/* Memberships Tab - New comprehensive membership management */}
           <TabsContent value="memberships">
             <MembershipManager />
-          </TabsContent>
+                </TabsContent>
+
+                <TabsContent value="categories">
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        <FolderOpen className="h-5 w-5" />
+                        Category Management
+                      </CardTitle>
+                      <CardDescription>Create and manage document categories</CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-6">
+                      <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
+                        <Dialog>
+                          <DialogTrigger asChild>
+                            <Button>
+                              <Plus className="h-4 w-4 mr-2" />
+                              Create Category
+                            </Button>
+                          </DialogTrigger>
+                          <DialogContent>
+                            <DialogHeader>
+                              <DialogTitle>Create New Category</DialogTitle>
+                              <DialogDescription>Add a new document category</DialogDescription>
+                            </DialogHeader>
+                            <div className="grid gap-4 py-4">
+                              <div className="grid gap-2">
+                                <Label htmlFor="cat-name">Category Name</Label>
+                                <Input
+                                  id="cat-name"
+                                  placeholder="e.g., IT Policies"
+                                  value={categoryForm.name}
+                                  onChange={(e) => setCategoryForm({...categoryForm, name: e.target.value})}
+                                />
+                              </div>
+                              <div className="grid gap-2">
+                                <Label htmlFor="cat-description">Description</Label>
+                                <Textarea 
+                                  id="cat-description"
+                                  placeholder="Category description"
+                                  value={categoryForm.description}
+                                  onChange={(e) => setCategoryForm({...categoryForm, description: e.target.value})}
+                                />
+                              </div>
+                              <div className="grid gap-2">
+                                <Label htmlFor="cat-color">Color</Label>
+                                <Input
+                                  id="cat-color"
+                                  type="color"
+                                  value={categoryForm.color}
+                                  onChange={(e) => setCategoryForm({...categoryForm, color: e.target.value})}
+                                />
+                              </div>
+                            </div>
+                            <DialogFooter>
+                              <Button onClick={createCategory}>Create Category</Button>
+                            </DialogFooter>
+                          </DialogContent>
+                        </Dialog>
+                      </div>
+
+                      <div className="space-y-4">
+                        <Table>
+                          <TableHeader>
+                            <TableRow>
+                              <TableHead>Name</TableHead>
+                              <TableHead>Description</TableHead>
+                              <TableHead>Documents</TableHead>
+                              <TableHead>Color</TableHead>
+                              <TableHead>Created</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {categories.map((category) => (
+                              <TableRow key={category.id}>
+                                <TableCell className="font-medium">{category.name}</TableCell>
+                                <TableCell>{category.description || 'No description'}</TableCell>
+                                <TableCell>
+                                  <Badge variant="outline">
+                                    {documents.filter(d => d.category_id === category.id).length} documents
+                                  </Badge>
+                                </TableCell>
+                                <TableCell>
+                                  <div 
+                                    className="w-6 h-6 rounded-full border" 
+                                    style={{ backgroundColor: category.color }}
+                                  />
+                                </TableCell>
+                                <TableCell>{new Date(category.created_at).toLocaleDateString()}</TableCell>
+                              </TableRow>
+                            ))}
+                          </TableBody>
+                        </Table>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </TabsContent>
 
           {/* Analytics Tab */}
           <TabsContent value="analytics">
@@ -1387,15 +1571,16 @@ const Dashboard = () => {
 };
 
 // Edit Document Dialog Component
-const EditDocumentDialog = ({ document, onUpdate }: { 
+const EditDocumentDialog = ({ document, onUpdate, categories }: { 
   document: any; 
   onUpdate: (id: string, updates: any) => void;
+  categories: DocumentCategory[];
 }) => {
   const [open, setOpen] = useState(false);
   const [title, setTitle] = useState(document.title);
   const [description, setDescription] = useState(document.description || '');
   const [documentType, setDocumentType] = useState(document.document_type);
-  const [category, setCategory] = useState(document.category || '');
+  const [categoryId, setCategoryId] = useState(document.category_id || '');
   const [lastReviewed, setLastReviewed] = useState<Date | undefined>(
     document.last_reviewed ? new Date(document.last_reviewed) : undefined
   );
@@ -1407,7 +1592,7 @@ const EditDocumentDialog = ({ document, onUpdate }: {
       title,
       description,
       document_type: documentType,
-      category,
+      category_id: categoryId,
       last_reviewed: lastReviewed ? format(lastReviewed, 'yyyy-MM-dd') : null,
     };
 
@@ -1423,12 +1608,6 @@ const EditDocumentDialog = ({ document, onUpdate }: {
     'incident_response', 'training_material', 'checklist'
   ];
 
-  const categories = [
-    'ISO Standards', 'Cyber Insurance', 'Australian Standards', 
-    'Privacy & Data Protection', 'Workplace Health & Safety',
-    'Quality Management', 'Environmental Management', 
-    'Business Continuity', 'Risk Management', 'Compliance'
-  ];
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -1483,14 +1662,15 @@ const EditDocumentDialog = ({ document, onUpdate }: {
 
           <div>
             <Label htmlFor="category">Category</Label>
-            <Select value={category} onValueChange={setCategory}>
+            <Select value={categoryId} onValueChange={setCategoryId}>
               <SelectTrigger>
                 <SelectValue placeholder="Select category" />
               </SelectTrigger>
               <SelectContent>
-                {categories.map(cat => (
-                  <SelectItem key={cat} value={cat}>
-                    {cat}
+                <SelectItem value="">No Category</SelectItem>
+                {categories.map((category) => (
+                  <SelectItem key={category.id} value={category.id}>
+                    {category.name}
                   </SelectItem>
                 ))}
               </SelectContent>

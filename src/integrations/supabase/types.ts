@@ -14,6 +14,42 @@ export type Database = {
   }
   public: {
     Tables: {
+      document_categories: {
+        Row: {
+          color: string | null
+          created_at: string
+          created_by: string | null
+          description: string | null
+          icon: string | null
+          id: string
+          is_active: boolean
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          color?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          icon?: string | null
+          id?: string
+          is_active?: boolean
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          color?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          icon?: string | null
+          id?: string
+          is_active?: boolean
+          name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       document_magic_links: {
         Row: {
           created_at: string
@@ -72,6 +108,7 @@ export type Database = {
         Row: {
           author_id: string | null
           category: string | null
+          category_id: string | null
           content: string | null
           created_at: string
           description: string | null
@@ -91,6 +128,7 @@ export type Database = {
         Insert: {
           author_id?: string | null
           category?: string | null
+          category_id?: string | null
           content?: string | null
           created_at?: string
           description?: string | null
@@ -110,6 +148,7 @@ export type Database = {
         Update: {
           author_id?: string | null
           category?: string | null
+          category_id?: string | null
           content?: string | null
           created_at?: string
           description?: string | null
@@ -132,6 +171,13 @@ export type Database = {
             columns: ["author_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "documents_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "document_categories"
             referencedColumns: ["id"]
           },
         ]
