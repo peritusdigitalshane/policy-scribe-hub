@@ -23,15 +23,7 @@ const Auth = () => {
       const { data: { session } } = await supabase.auth.getSession();
       if (session) {
         console.log('Existing session found:', session.user.id);
-        const { data: isSuperAdmin } = await supabase
-          .rpc('is_super_admin', { user_id: session.user.id });
-        
-        console.log('Is super admin:', isSuperAdmin);
-        if (isSuperAdmin) {
-          navigate("/dashboard");
-        } else {
-          navigate("/tenant-dashboard");
-        }
+        await handleUserRedirect(session.user.id);
       }
     };
 
@@ -42,16 +34,7 @@ const Auth = () => {
       console.log('Auth state change:', event, session?.user?.id);
       if (event === 'SIGNED_IN' && session) {
         setIsLoading(false); // Stop loading spinner
-        
-        const { data: isSuperAdmin } = await supabase
-          .rpc('is_super_admin', { user_id: session.user.id });
-        
-        console.log('Navigation - Is super admin:', isSuperAdmin);
-        if (isSuperAdmin) {
-          navigate("/dashboard");
-        } else {
-          navigate("/tenant-dashboard");
-        }
+        await handleUserRedirect(session.user.id);
       }
       
       if (event === 'SIGNED_OUT') {
@@ -61,6 +44,31 @@ const Auth = () => {
 
     return () => subscription.unsubscribe();
   }, [navigate]);
+
+  const handleUserRedirect = async (userId: string) => {
+    try {
+      // First check user_roles table directly
+      const { data: userRoles, error: rolesError } = await supabase
+        .from('user_roles')
+        .select('role')
+        .eq('user_id', userId);
+
+      console.log('User roles:', userRoles, 'Error:', rolesError);
+
+      const isSuperAdmin = userRoles?.some(role => role.role === 'super_admin') || false;
+      console.log('Navigation - Is super admin:', isSuperAdmin);
+      
+      if (isSuperAdmin) {
+        navigate("/dashboard");
+      } else {
+        navigate("/tenant-dashboard");
+      }
+    } catch (error) {
+      console.error('Error checking user role:', error);
+      // Default to tenant dashboard if there's an error
+      navigate("/tenant-dashboard");
+    }
+  };
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
