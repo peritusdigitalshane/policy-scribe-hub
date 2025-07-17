@@ -15,6 +15,7 @@ const Auth = () => {
   const [password, setPassword] = useState("");
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
+  const [isRedirecting, setIsRedirecting] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -46,6 +47,13 @@ const Auth = () => {
   }, [navigate]);
 
   const handleUserRedirect = async (userId: string) => {
+    if (isRedirecting) {
+      console.log('Already redirecting, skipping for user:', userId);
+      return;
+    }
+    
+    setIsRedirecting(true);
+    
     try {
       console.log('Starting handleUserRedirect for user:', userId);
       
@@ -87,6 +95,8 @@ const Auth = () => {
       });
       // Default to tenant dashboard if there's an error
       navigate("/tenant-dashboard");
+    } finally {
+      setIsRedirecting(false);
     }
   };
 
