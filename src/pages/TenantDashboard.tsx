@@ -33,6 +33,7 @@ const TenantDashboard = () => {
   const [documents, setDocuments] = useState<any[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [isTenantAdmin, setIsTenantAdmin] = useState(false);
 
   // Form states
   const [documentForm, setDocumentForm] = useState({
@@ -85,6 +86,11 @@ const TenantDashboard = () => {
         }
 
         setUserTenants(memberships);
+        
+        // Check if user is tenant admin for any of their tenants
+        const isAdmin = memberships.some(m => m.role === 'tenant_admin' || m.role === 'super_admin');
+        setIsTenantAdmin(isAdmin);
+        
         setDocumentForm(prev => ({ 
           ...prev, 
           selectedTenants: memberships.map(m => m.tenant_id) 
@@ -287,15 +293,17 @@ const TenantDashboard = () => {
       {/* Main Content */}
       <div className="container mx-auto px-4 py-8">
         <Tabs defaultValue="documents" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-2">
+          <TabsList className={`grid w-full ${isTenantAdmin ? 'grid-cols-2' : 'grid-cols-1'}`}>
             <TabsTrigger value="documents">
               <FileText className="mr-2 h-4 w-4" />
               Documents
             </TabsTrigger>
-            <TabsTrigger value="upload">
-              <Upload className="mr-2 h-4 w-4" />
-              Upload
-            </TabsTrigger>
+            {isTenantAdmin && (
+              <TabsTrigger value="upload">
+                <Upload className="mr-2 h-4 w-4" />
+                Upload
+              </TabsTrigger>
+            )}
           </TabsList>
 
           {/* Search */}
@@ -308,6 +316,19 @@ const TenantDashboard = () => {
               className="max-w-sm"
             />
           </div>
+
+          {!isTenantAdmin && (
+            <Card className="border-orange-200 bg-orange-50 dark:border-orange-900 dark:bg-orange-950">
+              <CardContent className="pt-6">
+                <div className="flex items-center gap-2 text-orange-800 dark:text-orange-200">
+                  <Upload className="h-4 w-4" />
+                  <p className="text-sm">
+                    Document upload is restricted to Tenant Administrators. Contact your tenant admin to upload documents.
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+          )}
 
           {/* Documents Tab */}
           <TabsContent value="documents">
@@ -385,14 +406,15 @@ const TenantDashboard = () => {
           </TabsContent>
 
           {/* Upload Tab */}
-          <TabsContent value="upload">
-            <Card>
-              <CardHeader>
-                <CardTitle>Upload Document</CardTitle>
-                <CardDescription>
-                  Upload a PDF document to share with your tenant members
-                </CardDescription>
-              </CardHeader>
+          {isTenantAdmin && (
+            <TabsContent value="upload">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Upload Document</CardTitle>
+                  <CardDescription>
+                    Upload a PDF document to share with your tenant members (Tenant Admin Only)
+                  </CardDescription>
+                </CardHeader>
               <CardContent className="space-y-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-2">
@@ -486,6 +508,7 @@ const TenantDashboard = () => {
               </CardContent>
             </Card>
           </TabsContent>
+          )}
         </Tabs>
       </div>
     </div>
