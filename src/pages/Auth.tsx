@@ -18,17 +18,44 @@ const Auth = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+    // Check for existing session first
+    const checkSession = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
       if (session) {
-        // Check if user is super admin
+        console.log('Existing session found:', session.user.id);
         const { data: isSuperAdmin } = await supabase
           .rpc('is_super_admin', { user_id: session.user.id });
         
+        console.log('Is super admin:', isSuperAdmin);
         if (isSuperAdmin) {
           navigate("/dashboard");
         } else {
           navigate("/tenant-dashboard");
         }
+      }
+    };
+
+    checkSession();
+
+    // Listen for auth state changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      console.log('Auth state change:', event, session?.user?.id);
+      if (event === 'SIGNED_IN' && session) {
+        setIsLoading(false); // Stop loading spinner
+        
+        const { data: isSuperAdmin } = await supabase
+          .rpc('is_super_admin', { user_id: session.user.id });
+        
+        console.log('Navigation - Is super admin:', isSuperAdmin);
+        if (isSuperAdmin) {
+          navigate("/dashboard");
+        } else {
+          navigate("/tenant-dashboard");
+        }
+      }
+      
+      if (event === 'SIGNED_OUT') {
+        setIsLoading(false);
       }
     });
 
