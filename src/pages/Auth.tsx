@@ -47,24 +47,44 @@ const Auth = () => {
 
   const handleUserRedirect = async (userId: string) => {
     try {
+      console.log('Starting handleUserRedirect for user:', userId);
+      
       // First check user_roles table directly
       const { data: userRoles, error: rolesError } = await supabase
         .from('user_roles')
         .select('role')
         .eq('user_id', userId);
 
-      console.log('User roles:', userRoles, 'Error:', rolesError);
+      console.log('User roles query result:', userRoles, 'Error:', rolesError);
+
+      if (rolesError) {
+        console.error('Error fetching user roles:', rolesError);
+        toast({
+          title: "Error",
+          description: "Failed to check user permissions. Redirecting to tenant dashboard.",
+          variant: "destructive",
+        });
+        navigate("/tenant-dashboard");
+        return;
+      }
 
       const isSuperAdmin = userRoles?.some(role => role.role === 'super_admin') || false;
       console.log('Navigation - Is super admin:', isSuperAdmin);
       
       if (isSuperAdmin) {
+        console.log('Navigating to dashboard...');
         navigate("/dashboard");
       } else {
+        console.log('Navigating to tenant-dashboard...');
         navigate("/tenant-dashboard");
       }
     } catch (error) {
-      console.error('Error checking user role:', error);
+      console.error('Error in handleUserRedirect:', error);
+      toast({
+        title: "Error",
+        description: "Navigation error. Please try refreshing the page.",
+        variant: "destructive",
+      });
       // Default to tenant dashboard if there's an error
       navigate("/tenant-dashboard");
     }
