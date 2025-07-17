@@ -91,17 +91,8 @@ const Auth = () => {
           description: error.message,
           variant: "destructive",
         });
-      } else {
-        // Check user role and redirect appropriately
-        const { data: isSuperAdmin } = await supabase
-          .rpc('is_super_admin', { user_id: (await supabase.auth.getUser()).data.user?.id });
-        
-        if (isSuperAdmin) {
-          navigate("/dashboard");
-        } else {
-          navigate("/tenant-dashboard");
-        }
       }
+      // Don't navigate here - let the onAuthStateChange handle it
     } catch (error) {
       toast({
         title: "Error",
